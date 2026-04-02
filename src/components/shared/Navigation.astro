@@ -1,0 +1,165 @@
+---
+// src/components/Navigation.astro
+const currentPath = Astro.url.pathname
+
+const menuItems = [
+  { name: 'Home', path: '/', icon: 'fa-house' },
+  { name: 'Transaction', path: '/expense', icon: 'fa-receipt' },
+  { name: 'Wallets', path: '/wallets', icon: 'fa-wallet' },
+  { name: 'Budget', path: '/budget', icon: 'fa-bullseye' }, // Menu Baru
+  { name: 'Stats', path: '/stats', icon: 'fa-chart-simple' },
+]
+
+const isActive = (path: string) => currentPath === path
+
+const { name = 'User' } = Astro.props
+---
+
+<aside
+  class="hidden md:flex w-72 bg-white border-r border-slate-100 flex-col sticky top-0 h-screen z-20"
+>
+  <div
+    class="p-10 text-2xl font-extrabold italic tracking-tighter uppercase font-jakarta"
+  >
+    DuitKu<span class="text-indigo-600">.</span>
+  </div>
+
+  <nav class="flex-1 px-6 space-y-2">
+    {
+      menuItems.map((item) => (
+        <a
+          href={item.path}
+          class={`flex items-center gap-4 px-5 py-4 rounded-2xl font-bold text-sm transition-all ${isActive(item.path) ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-100' : 'text-slate-400 hover:bg-indigo-50 hover:text-indigo-700'}`}
+        >
+          <i class={`fa-solid ${item.icon} text-lg`} />
+          {item.name}
+        </a>
+      ))
+    }
+    <div class="mb-8">
+      <a
+        href="/transactions"
+        class="flex items-center px-4 gap-3 w-full py-4 bg-indigo-950 text-white rounded-2xl font-extrabold text-xs capitalize tracking-widest shadow-xl shadow-slate-200 hover:bg-indigo-600 hover:shadow-indigo-100 transition-all active:scale-95 group"
+      >
+        <div
+          class="w-6 h-6 bg-white/10 rounded-lg flex items-center justify-center group-hover:bg-white/20 transition-colors"
+        >
+          <i class="fa-solid fa-plus text-[10px]"></i>
+        </div>
+        Add Transaction
+      </a>
+    </div>
+  </nav>
+
+  <div class="p-6 mt-auto border-t border-slate-100/50">
+    <div
+      class="flex items-center gap-3 p-3 bg-slate-50 rounded-3xl border border-slate-100 group transition-all hover:bg-white hover:shadow-xl hover:shadow-slate-200/50"
+    >
+      <div
+        class="w-10 h-10 rounded-2xl bg-indigo-600 shrink-0 flex items-center justify-center text-white overflow-hidden shadow-lg shadow-indigo-100"
+      >
+        <img
+          src={`https://ui-avatars.com/api/?name=${name}&background=4f46e5&color=fff&rounded=true&bold=true`}
+          class="rounded-full"
+          alt={name}
+        />
+      </div>
+
+      <div class="flex-1 min-w-0">
+        <p class="text-[11px] font-bold text-[#1D1E20] font-jakarta truncate">
+          Dion Mantovani
+        </p>
+        <p
+          class="text-[9px] font-bold text-slate-400 uppercase tracking-widest"
+        >
+          Premium User
+        </p>
+      </div>
+
+      <button
+        class="w-8 h-8 flex items-center justify-center rounded-xl text-slate-300 hover:bg-white hover:text-indigo-600 hover:shadow-sm transition-all active:scale-90"
+      >
+        <i class="fa-solid fa-gear text-sm"></i>
+      </button>
+    </div>
+  </div>
+</aside>
+
+<div
+  class="md:hidden fixed bottom-0 left-0 right-0 z-50 px-6 pb-3 pointer-events-none"
+  x-data="{ openAdd: false }"
+>
+  <div
+    x-show="openAdd"
+    x-transition:enter="transition ease-out duration-200"
+    x-transition:enter-start="opacity-0 translate-y-4"
+    x-transition:enter-end="opacity-100 translate-y-0"
+    x-transition:leave="transition ease-in duration-150"
+    x-transition:leave-start="opacity-100 translate-y-0"
+    x-transition:leave-end="opacity-0 translate-y-4"
+    class="flex flex-col items-end gap-3 absolute bottom-44 right-6 pointer-events-auto"
+    x-cloak
+  >
+    <a href="/transactions?type=transfer" class="flex items-center gap-3 group">
+      <span
+        class="bg-[#201f1d] text-white text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg shadow-xl"
+        >Transfer</span
+      >
+      <div
+        class="w-12 h-12 bg-indigo-500 text-white rounded-2xl flex items-center justify-center shadow-lg active:scale-90 transition-all"
+      >
+        <i class="fa-solid fa-right-left text-sm"></i>
+      </div>
+    </a>
+
+    <a href="/transactions?type=income" class="flex items-center gap-3 group">
+      <span
+        class="bg-[#1D1E20] text-white text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg shadow-xl"
+        >Income</span
+      >
+      <div
+        class="w-12 h-12 bg-emerald-500 text-white rounded-2xl flex items-center justify-center shadow-lg active:scale-90 transition-all"
+      >
+        <i class="fa-solid fa-arrow-down text-sm"></i>
+      </div>
+    </a>
+
+    <a href="/transactions?type=expense" class="flex items-center gap-3 group">
+      <span
+        class="bg-[#1D1E20] text-white text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg shadow-xl"
+        >Expense</span
+      >
+      <div
+        class="w-12 h-12 bg-rose-500 text-white rounded-2xl flex items-center justify-center shadow-lg active:scale-90 transition-all"
+      >
+        <i class="fa-solid fa-arrow-up text-sm"></i>
+      </div>
+    </a>
+  </div>
+
+  <nav
+    class="bg-white/90 backdrop-blur-xl border border-slate-100 h-20 rounded-[2.5rem] flex items-center justify-between px-6 shadow-xl pointer-events-auto relative"
+  >
+    {
+      menuItems.map((item) => (
+        <a
+          href={item.path}
+          class={`flex flex-col items-center gap-1 transition-all ${isActive(item.path) ? 'text-indigo-600' : 'text-slate-300'}`}
+        >
+          <i class={`fa-solid ${item.icon} text-lg`} />
+          <span class="text-[8px] font-bold uppercase tracking-widest">
+            {item.name}
+          </span>
+        </a>
+      ))
+    }
+
+    <button
+      @click="openAdd = !openAdd"
+      :class="openAdd ? 'bg-slate-800 rotate-45' : 'bg-indigo-600'"
+      class="w-16 h-16 text-white rounded-4xl flex items-center justify-center shadow-2xl shadow-indigo-300 border-3 border-[#FDFDFF] transition-all duration-300 bottom-22 absolute -right-2"
+    >
+      <i class="fa-solid fa-plus text-2xl"></i>
+    </button>
+  </nav>
+</div>

@@ -1,0 +1,470 @@
+---
+import MainLayout from '../layouts/MainLayout.astro'
+import TransactionHeader from '../components/transaction/TransactionHeader.astro'
+import TypeToggle from '../components/transaction/TypeToggle.astro'
+import AmountDisplay from '../components/transaction/AmountDisplay.astro'
+import CustomSelect from '../components/transaction/CustomSelect.astro'
+import EmptyState from '../components/shared/EmptyState.astro'
+---
+
+<MainLayout title="Add Transaction">
+  <main
+    class="mx-auto w-full h-auto bg-white flex flex-col"
+    x-data="transactionForm()"
+    x-init="init($nextTick)"
+  >
+    <TransactionHeader />
+    <TypeToggle />
+    <AmountDisplay />
+
+    <section class="flex-1 bg-slate-50 rounded-t-[2.5rem] px-6 py-2 space-y-4">
+      <div>
+        <label
+          class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1 ml-1"
+          >Date</label
+        >
+        <input
+          required
+          type="date"
+          x-model="date"
+          tabindex="-1"
+          class="w-full bg-white border border-slate-100 p-3 rounded-xl text-[12px] font-bold outline-none shadow-sm focus:border-indigo-500"
+        />
+      </div>
+
+      <div
+        class="grid gap-4"
+        :class="type === 'transfer' ? 'grid-cols-2' : 'grid-cols-1'"
+      >
+        <div class="relative">
+          <label
+            class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1 ml-1"
+            >From Wallet</label
+          >
+          <button
+            @click="openWallet = !openWallet"
+            type="button"
+            class="w-full bg-white border border-slate-100 p-2.5 rounded-xl text-[12px] font-bold text-slate-600 flex justify-between items-center focus:border-indigo-500 outline-none transition-all shadow-sm"
+          >
+            <span x-text="walletSource || 'Select'"></span>
+            <i
+              class="fa-solid fa-chevron-down text-[10px] transition-transform"
+              :class="openWallet ? 'rotate-180 text-indigo-500' : 'text-slate-300'"
+            ></i>
+          </button>
+
+          <div
+            x-show="openWallet"
+            @click.away="openWallet = false"
+            class="absolute z-50 w-full mt-2 bg-white border border-slate-100 rounded-2xl shadow-xl overflow-hidden"
+            x-cloak
+          >
+            <template x-for="w in wallets" :key="w.id">
+              <div
+                @click="walletSourceId = w.id; walletSource = w.name; openWallet = false"
+                class="p-3 text-[12px] font-bold text-slate-600 hover:bg-slate-50 cursor-pointer border-b border-slate-50 last:border-none"
+              >
+                <span x-text="w.name"></span>
+              </div>
+            </template>
+          </div>
+        </div>
+        <div class="relative" x-show="type === 'transfer'" x-cloak>
+          <label
+            class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1 ml-1"
+            >To Wallet</label
+          >
+          <button
+            @click="openDest = !openDest"
+            type="button"
+            class="w-full bg-white border border-slate-100 p-2.5 rounded-xl text-[12px] font-bold text-slate-600 flex justify-between items-center focus:border-indigo-500 outline-none transition-all shadow-sm"
+          >
+            <span x-text="walletDest || 'Select'"></span>
+            <i
+              class="fa-solid fa-chevron-down text-[10px] transition-transform"
+              :class="openDest ? 'rotate-180 text-indigo-500' : 'text-slate-300'"
+            ></i>
+          </button>
+
+          <div
+            x-show="openDest"
+            @click.away="openDest = false"
+            class="absolute z-50 w-full mt-2 bg-white border border-slate-100 rounded-2xl shadow-xl overflow-hidden"
+          >
+            <template x-for="w in wallets" :key="w.id">
+              <div
+                @click="walletDestId = w.id; walletDest = w.name; openDest = false"
+                class="p-3 text-[12px] font-bold text-slate-600 hover:bg-slate-50 cursor-pointer border-b border-slate-50 last:border-none flex items-center justify-between"
+                :class="w.id === walletSourceId ? 'opacity-30 pointer-events-none bg-slate-50' : ''"
+              >
+                <span x-text="w.name"></span>
+                <template x-if="w.id === walletSourceId">
+                  <span class="text-[8px] uppercase text-slate-400"
+                    >Same Wallet</span
+                  >
+                </template>
+              </div>
+            </template>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <label
+          class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1 ml-1"
+          >Notes</label
+        >
+        <input
+          required
+          x-ref="noteInput"
+          x-model="notes"
+          @input.debounce.500ms="predictCategory()"
+          @keydown.enter.prevent="saveRecord()"
+          type="text"
+          placeholder="Beli bensin..."
+          class="w-full bg-white border border-slate-100 p-3 rounded-xl text-[12px] font-bold outline-none shadow-sm focus:border-indigo-500"
+        />
+      </div>
+
+      <CustomSelect
+        x-show="type !== 'transfer'"
+        label="Category"
+        xModel="category"
+        placeholder="Select"
+        options="categories"
+        openState="openCategory"
+        mode="cat"
+        xRef="catBtn"
+      />
+
+      <div class="space-y-3 flex gap-3 mt-5">
+        <button
+          @click="saveRecord()"
+          type="button"
+          class="order-2 w-full h-12 bg-indigo-600 text-white rounded-2xl font-bold text-sm shadow-lg shadow-indigo-100 active:scale-[0.98] transition-all"
+        >
+          <span x-text="isEditMode ? 'Update Transaction' : 'Save Transaction'"
+          ></span>
+        </button>
+
+        <template x-if="isEditMode">
+          <button
+            @click="confirmDelete()"
+            type="button"
+            class="order-1 w-full h-12 rounded-2xl bg-rose-50 text-rose-500 font-bold text-xs flex items-center justify-center gap-2 active:bg-rose-100 transition-all border border-rose-100"
+          >
+            <i class="fa-solid fa-trash-can text-sm"></i>
+            <span>Delete Transaction</span>
+          </button>
+        </template>
+      </div>
+
+      <!-- <button
+        @click="saveRecord"
+        class="w-full py-4 bg-[#1D1E20] text-white rounded-2xl font-extrabold text-[11px] uppercase tracking-[0.3em] shadow-xl active:scale-95 transition-all outline-none"
+      >
+        Save Transaction
+      </button> -->
+    </section>
+
+    <div
+      x-show="showWalletModal"
+      x-cloak
+      class="fixed inset-0 z-60 flex items-end justify-center"
+    >
+      <div
+        class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+        @click="showWalletModal = false"
+      >
+      </div>
+      <div class="relative bg-white w-full rounded-t-[3rem] p-8 shadow-2xl">
+        <h3
+          class="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-500 mb-6 text-center"
+          x-text="modalStep === 'source' ? 'Pilih Rekening Asal' : 'Pilih Rekening Tujuan'"
+        >
+        </h3>
+
+        <div class="grid grid-cols-1 gap-3">
+          <template x-if="wallets.length > 0">
+            <template x-for="w in wallets">
+              <button
+                @click="selectWalletInitial(w, { $nextTick, $refs })"
+                :disabled="modalStep === 'dest' && w.name === walletSource"
+                :class="modalStep === 'dest' && w.name === walletSource ? 'opacity-30' : 'hover:bg-indigo-50'"
+                class="flex items-center justify-between p-5 rounded-2xl border border-slate-100 transition-all"
+              >
+                <span class="font-bold text-slate-700" x-text="w.name"></span>
+                <i class="fa-solid fa-chevron-right text-[10px] text-slate-300"
+                ></i>
+              </button>
+            </template>
+          </template>
+
+          <template x-if="wallets.length === 0">
+            <EmptyState
+              title="No Wallets Yet"
+              message="You don't have any wallets connected. Create one to start tracking your balances and transactions."
+              icon="fa-building-columns"
+              buttonText="Create Wallet in Wallets Page"
+              type="link"
+              link="/wallets"
+            />
+          </template>
+        </div>
+      </div>
+    </div>
+  </main>
+</MainLayout>
+
+<script>
+  import { storage } from '../utils/storage'
+
+  document.addEventListener('alpine:init', () => {
+    // Kita definisikan fungsi di window agar bisa dipanggil x-data
+    ;(window as any).transactionForm = () => ({
+      type: '',
+      amount: '',
+      date: '',
+      walletSource: '',
+      walletDest: '',
+      category: '',
+      notes: '',
+      openWallet: false,
+      openDest: false,
+      openCategory: false,
+      activeIndex: -1,
+      wallets: [] as any[],
+      categories: [],
+      showWalletModal: false,
+      modalStep: 'source',
+      isEditMode: false,
+      editId: null as string | null,
+      walletSourceId: '',
+      walletDestId: '',
+
+      init(nextTick: any) {
+        const settings = storage.getSettings()
+        this.wallets = settings.wallets
+        this.categories = settings.categories
+
+        const urlParams = new URLSearchParams(window.location.search)
+        const id = urlParams.get('edit')
+        const typeFromUrl = urlParams.get('type')
+
+        // 1. Set default date (Hari ini)
+        this.date = new Intl.DateTimeFormat('sv-SE', {
+          timeZone: 'Asia/Jakarta',
+        }).format(new Date())
+
+        // 2. Cek Mode Edit
+        if (id) {
+          // --- MODE EDIT ---
+          const history = storage.getTransactions()
+          // Gunakan == untuk antisipasi perbedaan tipe data ID
+          const data = history.find((t: any) => t.id == id)
+
+          if (data) {
+            this.isEditMode = true
+            this.editId = id
+            this.type = data.type
+            this.amount = data.amount.toString()
+            this.notes = data.notes
+            this.category = data.category
+            this.date = data.date
+
+            // 1. Set ID-nya dulu
+            this.walletSourceId = data.walletId
+            this.walletDestId = data.walletIdDest
+
+            // 2. CARI NAMANYA buat ditampilin di UI Dropdown
+            // Kita cari dari array wallets yang udah lo load di init
+            const sourceWallet = this.wallets.find(
+              (w) => w.id === data.walletId
+            )
+            if (sourceWallet) {
+              this.walletSource = sourceWallet.name
+            }
+
+            // 3. Kalau tipenya transfer, cari juga nama wallet tujuannya
+            if (data.type === 'transfer' && data.walletIdDest) {
+              const destWallet = this.wallets.find(
+                (w) => w.id === data.walletIdDest
+              )
+              if (destWallet) {
+                this.walletDest = destWallet.name
+              }
+            }
+
+            this.showWalletModal = false
+          }
+        } else {
+          // --- MODE ADD ---
+          this.isEditMode = false
+          this.showWalletModal = true
+
+          // Set tanggal hari ini hanya untuk transaksi baru [cite: 96]
+          this.date = new Intl.DateTimeFormat('sv-SE', {
+            timeZone: 'Asia/Jakarta',
+          }).format(new Date())
+
+          // Prioritas tipe dari FAB, kalau gak ada default ke expense [cite: 101]
+          this.type =
+            typeFromUrl &&
+            ['expense', 'income', 'transfer'].includes(typeFromUrl)
+              ? typeFromUrl
+              : 'expense'
+          ;(window as any).Alpine.nextTick(() => {
+            ;(this as any).$refs.amountInput?.focus()
+          })
+        }
+      },
+
+      handleKey(e: KeyboardEvent, list: string[], mode: string) {
+        if (e.key === 'ArrowDown') {
+          e.preventDefault()
+          this.activeIndex = (this.activeIndex + 1) % list.length
+        } else if (e.key === 'ArrowUp') {
+          e.preventDefault()
+          this.activeIndex = (this.activeIndex - 1 + list.length) % list.length
+        } else if (e.key === 'Enter' && this.activeIndex !== -1) {
+          e.preventDefault()
+          // Cukup kirim val dan mode [cite: 43]
+          this.selectValue(list[this.activeIndex], mode)
+        }
+      },
+
+      // Di dalam script transactionForm
+      selectValue(val: any, mode: any) {
+        const name = typeof val === 'object' ? val.name : val
+        if (!name) return
+
+        // Gunakan casting 'as any' untuk akses properti internal Alpine
+        const self = this as any
+
+        if (mode === 'source') {
+          this.walletSource = name
+          this.openWallet = false
+          self.$nextTick(() => {
+            // Pastikan x-ref="destBtn" dan x-ref="amountInput" ada di elemen HTML
+            if (this.type === 'transfer') self.$refs.destBtn?.focus()
+            else self.$refs.amountInput?.focus()
+          })
+        } else if (mode === 'dest' || mode === 'cat') {
+          if (mode === 'dest' && name === this.walletSource) {
+            return alert('Rekening tujuan gak boleh sama!')
+          }
+
+          if (mode === 'dest') {
+            this.walletDest = name
+            this.openDest = false
+          } else {
+            this.category = name
+            this.openCategory = false
+          }
+
+          // Pastikan x-ref="noteInput" ada di elemen input Notes
+          self.$nextTick(() => self.$refs.noteInput?.focus())
+        }
+      },
+
+      predictCategory() {
+        if (this.notes.length < 3) return
+        const history = storage.getTransactions()
+        // Cari deskripsi yang mirip
+        const match = history.find((t: any) =>
+          t.notes.toLowerCase().includes(this.notes.toLowerCase())
+        )
+        if (match) {
+          this.category = match.category
+        }
+      },
+      // Hapus parameter kedua { nextTick, refs }
+      selectWalletInitial(wallet: any) {
+        const self = this as any
+        if (this.modalStep === 'source') {
+          this.walletSourceId = wallet.id
+          this.walletSource = wallet.name
+
+          if (this.type === 'transfer') {
+            this.modalStep = 'dest'
+          } else {
+            this.showWalletModal = false
+            self.$nextTick(() => self.$refs.amountInput?.focus())
+          }
+        } else {
+          this.walletDestId = wallet.id
+          this.walletDest = wallet.name
+          this.showWalletModal = false
+          this.modalStep = 'source'
+          self.$nextTick(() => self.$refs.amountInput?.focus())
+        }
+      },
+
+      async confirmDelete() {
+        if (confirm('Yakin mau hapus transaksi ini, Bro?')) {
+          const history = storage.getTransactions()
+          // Gunakan != (loose inequality) agar aman jika ID bertipe string vs number
+          const newData = history.filter((t: any) => t.id != this.editId)
+
+          localStorage.setItem('DION_TRANSACTIONS', JSON.stringify(newData))
+          window.location.href = '/expense'
+        }
+      },
+
+      async saveRecord() {
+        // Guard untuk Nominal
+        if (!this.amount || this.amount === '0')
+          return alert('Nominal harus diisi!')
+
+        // Guard untuk Wallet
+        if (!this.walletSourceId) return alert('Pilih rekening dulu!')
+        // if (!this.walletSource) return alert('Pilih rekening dulu!')
+
+        // Guard untuk Transfer
+        if (this.type === 'transfer' && !this.walletDest)
+          return alert('Pilih rekening tujuan!')
+
+        // Guard untuk Kategori (Non-Transfer)
+        if (this.type !== 'transfer' && !this.category)
+          return alert('Pilih kategori dulu!')
+
+        let finalNotes = this.notes
+        if (
+          this.type === 'transfer' &&
+          (!this.notes || this.notes.trim() === '')
+        ) {
+          finalNotes = 'Transfer'
+        }
+
+        const data = {
+          type: this.type,
+          amount: this.amount,
+          date: this.date,
+          // walletSource: this.walletSource,
+          // walletDest: this.type === 'transfer' ? this.walletDest : null,
+          walletId: this.walletSourceId, // DATABASE PAKE ID
+          walletIdDest: this.type === 'transfer' ? this.walletDestId : null,
+          category: this.type !== 'transfer' ? this.category : 'Transfer',
+          notes: finalNotes,
+          id: this.isEditMode ? this.editId : Date.now().toString(), // Pake ID lama kalau edit
+        }
+
+        if (this.isEditMode) {
+          const history = storage.getTransactions()
+          // Gunakan == agar perbandingan ID string vs number tetap valid
+          const index = history.findIndex((t: any) => t.id == this.editId)
+
+          if (index !== -1) {
+            history[index] = data
+            localStorage.setItem('DION_TRANSACTIONS', JSON.stringify(history))
+          }
+        } else {
+          storage.addTransaction(data)
+        }
+
+        // Langsung pindah halaman, jangan panggil addTransaction lagi di sini
+        window.location.href = '/expense'
+      },
+    })
+  })
+</script>

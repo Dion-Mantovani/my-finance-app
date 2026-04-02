@@ -1,0 +1,103 @@
+---
+import '../styles/global.css'
+import Navigation from '../components/shared/Navigation.astro'
+const { title = 'DuitKu' } = Astro.props
+
+const currentPath = Astro.url.pathname
+
+// Daftar halaman yang TIDAK boleh ada navigasinya
+// Tambahkan '/transaction' atau '/add-transaction' sesuai rute lo
+const hideNavigationPaths = ['/transactions', '/add-transaction']
+const shouldShowNavigation = !hideNavigationPaths.includes(currentPath)
+---
+
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0"
+    />
+    <title>{title} | DuitKu</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    />
+    <style>
+      body {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        -webkit-tap-highlight-color: transparent;
+      }
+      .nav-blur {
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(20px);
+      }
+      [x-cloak] {
+        display: none !important;
+      }
+    </style>
+  </head>
+  <body
+    class="bg-[#FDFDFF] text-[#1D1E20] min-h-screen overflow-x-hidden"
+    x-data="{ showAmount: localStorage.getItem('showAmount') !== 'false' }"
+    x-init="$watch('showAmount', value => localStorage.setItem('showAmount', value))"
+  >
+    <div class="flex">
+      {shouldShowNavigation && <Navigation name="Dion Mantovani" />}
+      <div class="flex-1">
+        <main class="max-w-5xl mx-auto px-6 py-8 md:py-12">
+          <slot />
+        </main>
+      </div>
+    </div>
+  </body>
+</html>
+
+<style is:global>
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none; /* IE/Edge */
+    scrollbar-width: none; /* Firefox */
+  }
+  /* Targetkan langsung ke level root/html */
+  html {
+    scrollbar-gutter: stable;
+    /* Firefox: sembunyiin warna pas diem */
+    scrollbar-color: transparent transparent;
+    transition: scrollbar-color 0.3s ease;
+  }
+
+  /* Munculin di Firefox saat hover */
+  html:hover {
+    scrollbar-color: #cbd5e1 transparent;
+  }
+
+  /* Chrome, Edge, Safari (Webkit) */
+  html::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  html::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  html::-webkit-scrollbar-thumb {
+    background-color: transparent; /* Gaib pas diem */
+    border-radius: 20px;
+    border: 2px solid transparent; /* Biar rapi */
+  }
+
+  /* Muncul pas mouse gerak di area halaman */
+  html:hover::-webkit-scrollbar-thumb {
+    background-color: #cbd5e1; /* Warna slate-300 */
+    border: 2px solid #fdfdff; /* Samain dengan warna bg body lo biar cantik */
+  }
+</style>

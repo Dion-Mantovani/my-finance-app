@@ -1,0 +1,42 @@
+---
+// src/components/transactions/CustomSelect.astro
+const { label, xModel, options, openState, placeholder, mode, xRef } =
+  Astro.props
+---
+
+<div class="relative" x-show={Astro.props['x-show'] || 'true'}>
+  <label
+    class="text-[10px] font-bold text-slate-400 tracking-widest block mb-1 ml-1"
+    >{label}</label
+  >
+  <button
+    x-ref={xRef}
+    @click={`${openState} = !${openState}`}
+    @keydown={`handleKey($event, ${options}, '${mode}')`}
+    @click.away={`${openState} = false; activeIndex = -1`}
+    type="button"
+    class="w-full bg-white border border-slate-100 p-2.5 rounded-xl text-[12px] font-bold text-slate-600 flex justify-between items-center focus:border-indigo-500 outline-none transition-all shadow-sm"
+  >
+    <span x-text={`${xModel} || '${placeholder}'`}></span>
+    <i
+      class="fa-solid fa-chevron-down text-[10px] transition-transform"
+      :class={`${openState} ? 'rotate-180 text-indigo-500' : 'text-slate-300'`}
+    ></i>
+  </button>
+
+  <div
+    x-show={openState}
+    class="absolute z-50 w-full mt-2 bg-white border border-slate-100 rounded-2xl overflow-hidden"
+    x-cloak
+  >
+    <template x-for={`(item, i) in ${options}`} :key="i">
+      <div
+        @click={`selectValue(item, '${mode}')`}
+        :class={`activeIndex === i ? 'bg-indigo-50 text-indigo-600' : 'text-slate-600'`}
+        class="px-4 py-3 text-[11px] font-bold hover:bg-slate-50 cursor-pointer border-b border-slate-50 last:border-none transition-colors"
+        x-text="typeof item === 'object' ? item.name : item"
+      >
+      </div>
+    </template>
+  </div>
+</div>

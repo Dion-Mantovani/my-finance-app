@@ -1,0 +1,711 @@
+---
+import MainLayout from '../layouts/MainLayout.astro'
+import TransactionItem from '../components/shared/TransactionItem.astro'
+import EmptyState from '../components/shared/EmptyState.astro'
+import Filter from '../components/expense/Filter.astro'
+---
+
+<MainLayout title="All History">
+  <div
+    class="mx-auto pb-[15vh]"
+    x-data="expensePage()"
+    @toggle-privacy-event.window="togglePrivacy()"
+  >
+    <div class="mb-3">
+      <div class="flex items-center gap-6">
+        <div
+          class="flex items-center justify-between gap-3 grow bg-slate-100 overflow-hidden rounded-4xl p-2"
+        >
+          <button
+            @click="changeDate(-1)"
+            class="w-8 h-8 bg-white border border-slate-100 rounded-full shadow-sm flex items-center justify-center text-slate-400 active:scale-90 transition-all"
+          >
+            <i class="fa-solid fa-chevron-left text-[10px]"></i>
+          </button>
+
+          <div class="flex flex-col items-center">
+            <span
+              class="text-[8px] text-center font-black uppercase tracking-[0.2em] text-indigo-500"
+              >Periode</span
+            >
+            <div class="relative">
+              <input
+                type="date"
+                x-model="selectedDate"
+                @change="startDate = ''; endDate = ''; loadData()"
+                class="absolute inset-0 opacity-0 cursor-pointer"
+              />
+              <span
+                class="text-[10px] font-bold text-slate-700 whitespace-nowrap px-2"
+                x-text="getDateLabel()"></span>
+            </div>
+          </div>
+
+          <button
+            @click="changeDate(1)"
+            class="w-8 h-8 bg-white border border-slate-100 rounded-full shadow-sm flex items-center justify-center text-slate-400 active:scale-90 transition-all"
+          >
+            <i class="fa-solid fa-chevron-right text-[10px]"></i>
+          </button>
+        </div>
+
+        <div class="flex items-center gap-2 flex-none">
+          <button
+            class="w-9 h-9 bg-white border border-slate-100 rounded-xl shadow-sm flex items-center justify-center text-slate-400 active:scale-90 transition-all"
+          >
+            <i class="fa-solid fa-file-export text-xs"></i>
+          </button>
+
+          <button
+            @click="showFilterModal = true"
+            class="w-9 h-9 bg-indigo-600 rounded-xl text-white shadow-lg shadow-indigo-100 relative active:scale-90 transition-all"
+          >
+            <i class="fa-solid fa-filter text-xs"></i>
+
+            <template x-if="isFilterActive()">
+              <span
+                class="absolute -top-1 -right-1 w-3 h-3 bg-red-500 border-2 border-white rounded-full"
+              ></span>
+            </template>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="mb-3">
+      <div
+        class="bg-indigo-600 rounded-4xl p-6 shadow-xl shadow-indigo-100 flex justify-between items-center overflow-hidden relative"
+      >
+        <div
+          class="absolute -right-4 -top-4 w-24 h-24 bg-white/10 rounded-full blur-2xl"
+        >
+        </div>
+
+        <div class="flex-1 text-center">
+          <p
+            class="text-[9px] font-bold text-indigo-200 uppercase tracking-widest mb-1"
+          >
+            Pemasukan
+          </p>
+          <p
+            class="text-xs font-black text-white"
+            x-text="'Rp' + summary.income.toLocaleString()"
+          >
+            0
+          </p>
+        </div>
+
+        <div class="w-px h-8 bg-indigo-500/50"></div>
+
+        <div class="flex-1 text-center">
+          <p
+            class="text-[9px] font-bold text-indigo-200 uppercase tracking-widest mb-1"
+          >
+            Pengeluaran
+          </p>
+          <p
+            class="text-xs font-black text-white"
+            x-text="'Rp' + summary.expense.toLocaleString()"
+          >
+            0
+          </p>
+        </div>
+
+        <div class="w-px h-8 bg-indigo-500/50"></div>
+
+        <div class="flex-1 text-center">
+          <p
+            class="text-[9px] font-bold text-indigo-200 uppercase tracking-widest mb-1"
+          >
+            Balance
+          </p>
+          <p
+            class="text-xs font-black text-white"
+            x-text="'Rp' + summary.balance.toLocaleString()"
+          >
+            0
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="mb-8">
+      <div class="relative">
+        <i
+          class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 text-xs"
+        ></i>
+        <input
+          type="text"
+          x-model="searchQuery"
+          @input.debounce.300ms="loadData()"
+          :placeholder="isFilterActive() ? 'Cari di hasil filter...' : 'Cari transaksi...'"
+          class="w-full bg-white border border-slate-100 p-3 pl-11 rounded-full text-xs font-bold outline-none shadow-sm focus:border-indigo-500 transition-all"
+        />
+      </div>
+    </div>
+
+    <!-- <Filter /> -->
+
+    <section>
+      <template x-if="Object.keys(groupedTransactions).length > 0">
+        <div>
+          <template x-if="Object.keys(groupedTransactions).length > 0">
+            <div class="space-y-2">
+              <template
+                x-for="(date, index) in Object.keys(groupedTransactions)"
+                :key="date"
+              >
+                <div
+                  class="py-4 transition-all"
+                  :class="startDate && endDate && index !== 0 ? 'border-t border-indigo-200 mt-4 pt-8' : ''"
+                >
+                  <div
+                    x-show="startDate && endDate"
+                    class="flex justify-between items-center mb-6 px-2"
+                  >
+                    <span
+                      class="text-[10px] font-black text-indigo-500 uppercase tracking-[0.2em]"
+                      x-text="formatDateTitle(date)"></span>
+
+                    <div
+                      class="flex items-center gap-2 bg-slate-50 px-3 py-1 rounded-full border border-indigo-200"
+                    >
+                      <span
+                        class="text-xs font-black text-slate-700"
+                        x-text="'Rp' + (groupedTransactions[date].totalDaily || 0).toLocaleString('id-ID')"
+                      ></span>
+                    </div>
+                  </div>
+
+                  <div class="space-y-2">
+                    <template
+                      x-for="item in groupedTransactions[date].items"
+                      :key="item.id"
+                    >
+                      <div class="relative">
+                        <TransactionItem />
+                      </div>
+                    </template>
+                  </div>
+                </div>
+              </template>
+            </div>
+          </template>
+        </div>
+      </template>
+
+      <template x-if="Object.keys(groupedTransactions).length === 0">
+        <EmptyState
+          title="No History Found"
+          message="We couldn't find any transactions. Try adjusting your filters or add a new record."
+          buttonText="Record Transaction"
+          icon="fa-clock-rotate-left"
+          type="link"
+          link="/transactions"
+        />
+      </template>
+    </section>
+
+    <div
+      x-show="showFilterModal"
+      x-cloak
+      class="fixed inset-0 z-60 flex items-end justify-center"
+    >
+      <div
+        class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+        @click="showFilterModal = false"
+      >
+      </div>
+      <div
+        class="relative bg-white w-full rounded-t-[3rem] p-8 shadow-2xl animate-slide-up"
+      >
+        <div class="w-12 h-1.5 bg-slate-100 rounded-full mx-auto mb-8"></div>
+
+        <div class="space-y-8 max-h-[80vh] overflow-y-auto no-scrollbar pb-10">
+          <div>
+            <label
+              class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3 block"
+              >Custom Range</label
+            >
+            <div class="grid grid-cols-2 gap-3">
+              <input
+                type="date"
+                x-model="startDate"
+                class="bg-slate-50 border-none p-3 rounded-xl text-xs font-bold outline-none"
+              />
+              <input
+                type="date"
+                x-model="endDate"
+                class="bg-slate-50 border-none p-3 rounded-xl text-xs font-bold outline-none"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label
+              class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3 block"
+              >Tipe Transaksi</label
+            >
+            <div class="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+              <template
+                x-for="type in ['all', 'expense', 'income', 'transfer']"
+              >
+                <button
+                  @click="filterType = type"
+                  :class="filterType === type ? 'bg-indigo-600 text-white' : 'bg-slate-50 text-slate-500'"
+                  class="px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all"
+                  x-text="type"></button>
+              </template>
+            </div>
+          </div>
+
+          <div>
+            <label
+              class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3 block"
+              >Pilih Rekening</label
+            >
+            <div class="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+              <button
+                @click="filterWallet = 'all'"
+                :class="filterWallet === 'all' ? 'bg-indigo-600 text-white' : 'bg-slate-50 text-slate-500'"
+                class="px-4 py-2 rounded-xl text-[10px] font-bold uppercase transition-all shrink-0"
+                >Semua</button
+              >
+              <template x-for="w in wallets">
+                <button
+                  @click="filterWallet = w.name"
+                  :class="filterWallet === w.name ? 'bg-indigo-600 text-white' : 'bg-slate-50 text-slate-500'"
+                  class="px-4 py-2 rounded-xl text-[10px] font-bold uppercase transition-all shrink-0"
+                  x-text="w.name"></button>
+              </template>
+            </div>
+          </div>
+
+          <div>
+            <label
+              class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3 block"
+            >
+              Berdasarkan Kategori
+            </label>
+            <div class="flex flex-wrap gap-2">
+              <div class="flex flex-wrap gap-2">
+                <button
+                  @click="filterCategory = 'all'"
+                  :class="filterCategory === 'all' ? 'bg-indigo-600 text-white' : 'bg-slate-50 text-slate-500'"
+                  class="px-4 py-2 rounded-xl text-[9px] font-bold uppercase tracking-widest transition-all"
+                >
+                  Semua
+                </button>
+
+                <template x-for="(cat, index) in categories" :key="index">
+                  <button
+                    @click="filterCategory = (typeof cat === 'object' ? cat.name : cat)"
+                    :class="filterCategory === (typeof cat === 'object' ? cat.name : cat) ? 'bg-indigo-600 text-white' : 'bg-slate-50 text-slate-500'"
+                    class="px-4 py-2 rounded-xl text-[9px] font-bold uppercase tracking-widest transition-all"
+                  >
+                    <span x-text="typeof cat === 'object' ? cat.name : cat"
+                    ></span>
+                  </button>
+                </template>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-3 gap-3">
+            <button
+              @click="resetFilter()"
+              class="col-span-1 bg-slate-100 text-slate-500 font-black py-4 rounded-2xl text-[10px] uppercase"
+              >Reset</button
+            >
+            <button
+              @click="applyFilter()"
+              class="col-span-2 bg-indigo-600 text-white font-black py-4 rounded-2xl shadow-xl shadow-indigo-100 active:scale-95 transition-all text-[10px] uppercase"
+              >Terapkan</button
+            >
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</MainLayout>
+
+<script>
+  import { storage } from '../utils/storage'
+
+  document.addEventListener('alpine:init', () => {
+    // Daftarkan sebagai expensePage agar bisa dipanggil x-data="expensePage()"
+    ;(window as any).expensePage = () => ({
+      transactions: [],
+      groupedTransactions: {},
+      categoriesList: [],
+      showAmount: storage.getPrivacy(),
+      activeTab: 'All',
+      activeCategory: 'All',
+      selectedDate: new Intl.DateTimeFormat('sv-SE', {
+        timeZone: 'Asia/Jakarta',
+      }).format(new Date()),
+      startDate: '', // Untuk range
+      endDate: '', // Untuk range
+      searchQuery: '',
+      filterType: 'all',
+      filterWallet: 'all',
+      filterCategory: 'all', // State baru
+      showFilterModal: false,
+      summary: { income: 0, expense: 0, balance: 0 },
+      wallets: [], // Tambahkan ini
+      categories: [], // Tambahkan ini
+
+      init() {
+        const settings = storage.getSettings()
+        this.categoriesList = settings.categories
+        this.wallets = settings.wallets || []
+        this.categories = settings.categories || []
+        this.loadAndGroupData()
+        this.loadDailyData()
+        this.loadData()
+
+        // Dengerin perubahan (SANGAT PENTING)
+        window.addEventListener('storage', (e) => {
+          if (e.key === 'DION_PRIVACY') {
+            this.showAmount = storage.getPrivacy()
+          }
+        })
+      },
+
+      loadData() {
+        // const allData = storage.getTransactions()
+        // const transactions = storage.getTransactions() || []
+        const settings = storage.getSettings() as any
+        const wallets = settings.wallets || []
+
+        this.categories = settings.categories || []
+        this.wallets = settings.wallets || []
+
+        const allRawData = storage.getTransactions() || []
+
+        this.categories = settings.categories || []
+        this.wallets = settings.wallets || []
+
+        // STEP 1: Enrich Data (Ubah ID jadi Nama agar UI & Filter Wallet jalan)
+        const enrichedData = allRawData.map((item: any) => {
+          const source = wallets.find((w: any) => w.id === item.walletId)
+          const dest = item.walletIdDest
+            ? wallets.find((w: any) => w.id === item.walletIdDest)
+            : null
+
+          return {
+            ...item,
+            walletSource: source ? source.name : 'Unknown Wallet',
+            walletDestName: dest ? dest.name : '',
+          }
+        })
+
+        // Simpan ke state (buat jaga-jaga kalau dipake di tempat lain)
+        this.transactions = enrichedData
+
+        // STEP 2: Filter Data (Gunakan enrichedData)
+        let filtered = enrichedData.filter((t: any) => {
+          const matchesDate =
+            this.startDate && this.endDate
+              ? t.date >= this.startDate && t.date <= this.endDate
+              : t.date === this.selectedDate
+
+          const matchesSearch =
+            (t.notes || '')
+              .toLowerCase()
+              .includes(this.searchQuery.toLowerCase()) ||
+            (t.category || '')
+              .toLowerCase()
+              .includes(this.searchQuery.toLowerCase())
+
+          const matchesType =
+            this.filterType === 'all' ? true : t.type === this.filterType
+
+          // Sekarang matchesWallet aman karena t.walletSource sudah ada namanya
+          const matchesWallet =
+            this.filterWallet === 'all'
+              ? true
+              : t.walletSource === this.filterWallet ||
+                t.walletDestName === this.filterWallet
+
+          const matchesCategory =
+            this.filterCategory === 'all'
+              ? true
+              : t.category === this.filterCategory
+
+          return (
+            matchesDate &&
+            matchesSearch &&
+            matchesType &&
+            matchesWallet &&
+            matchesCategory
+          )
+        })
+
+        // 3. Grouping & Hitung Total Harian
+        const groups = filtered.reduce((acc: any, item: any) => {
+          const dateKey = item.date
+          if (!acc[dateKey]) {
+            acc[dateKey] = { items: [], totalDaily: 0 }
+          }
+
+          acc[dateKey].items.push(item)
+
+          // Hitung saldo harian (Income - Expense), Transfer diabaikan
+          const amt = Number(item.amount) || 0
+          if (item.type === 'income') acc[dateKey].totalDaily += amt
+          else if (item.type === 'expense') acc[dateKey].totalDaily -= amt
+
+          return acc
+        }, {})
+
+        // 4. Sorting Tanggal (Descending: Terbaru ke Terlama)
+        this.groupedTransactions = Object.keys(groups)
+          .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())
+          .reduce((obj: any, key) => {
+            obj[key] = groups[key]
+            return obj
+          }, {})
+      },
+
+      isFilterActive() {
+        return (
+          this.filterType !== 'all' ||
+          this.filterWallet !== 'all' ||
+          this.filterCategory !== 'all' ||
+          (this.startDate && this.endDate) ||
+          this.searchQuery !== ''
+        )
+      },
+
+      resetFilter() {
+        this.filterType = 'all'
+        this.filterWallet = 'all'
+        this.filterCategory = 'all'
+        this.startDate = ''
+        this.endDate = ''
+        this.searchQuery = ''
+        this.loadData()
+      },
+
+      // Di dalam expensePage()
+      getDateLabel() {
+        // 1. Kalo lagi pake Custom Range Date
+        if (this.startDate && this.endDate) {
+          const s = new Date(this.startDate)
+          const e = new Date(this.endDate)
+
+          // Format: Tanggal, Bulan, Tahun (Tanpa Hari)
+          const options: any = {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric',
+          }
+          return `${s.toLocaleDateString('id-ID', options)} - ${e.toLocaleDateString('id-ID', options)}`
+        }
+
+        // 2. Kalo Single Date (Harian)
+        const d = new Date(this.selectedDate)
+        const today = new Intl.DateTimeFormat('sv-SE', {
+          timeZone: 'Asia/Jakarta',
+        }).format(new Date())
+
+        // Format dasar: Tanggal, Bulan, Tahun
+        const dateOptions: any = {
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric',
+        }
+        const dateStr = d.toLocaleDateString('id-ID', dateOptions)
+
+        // Cek apakah hari ini
+        if (this.selectedDate === today) {
+          return `Today, ${dateStr}`
+        }
+
+        // Jika bukan hari ini, tampilkan Nama Hari
+        const dayName = d.toLocaleDateString('id-ID', { weekday: 'long' })
+        return `${dayName}, ${dateStr}`
+      },
+
+      changeDate(days: number) {
+        const d = new Date(this.selectedDate)
+        d.setDate(d.getDate() + days)
+
+        // Update selectedDate dengan format YYYY-MM-DD
+        this.selectedDate = d.toISOString().split('T')[0]
+
+        // PENTING: Panggil loadDailyData setelah tanggal berubah!
+        this.loadDailyData()
+      },
+
+      applyFilter() {
+        this.showFilterModal = false
+        this.loadData()
+      },
+
+      loadDailyData() {
+        const allData = storage.getTransactions() || []
+
+        // 1. Filter data berdasarkan tanggal terpilih (Format YYYY-MM-DD)
+        // Pastikan format t.date dan this.selectedDate sama
+        const filteredItems = allData.filter((t: any) => {
+          // Jika filter lo harian, biarkan begini.
+          // Tapi kalau nanti lo mau filter range, logic ini tinggal diganti.
+          return t.date === this.selectedDate
+        })
+
+        // 2. Hitung Summary (Dinamis mengikuti hasil filter di atas)
+        let inc = 0
+        let exp = 0
+
+        filteredItems.forEach((item: any) => {
+          const amt = Number(item.amount) || 0
+          if (item.type === 'income') {
+            inc += amt
+          } else if (item.type === 'expense' || item.type === 'transfer') {
+            // Catatan: Transfer biasanya tidak masuk income/expense summary global,
+            // tapi kalau lo mau hitung sebagai 'pengeluaran' dari wallet asal, tambahkan di sini.
+            exp += amt
+          }
+        })
+
+        // Update State Summary
+        this.summary = {
+          income: inc,
+          expense: exp,
+          balance: inc - exp,
+        }
+
+        // 3. Update Grouped Transactions agar UI List ikut berubah
+        // Kita pakai object dengan key [this.selectedDate] agar template lo tetap jalan
+        this.groupedTransactions =
+          filteredItems.length > 0
+            ? {
+                [this.selectedDate]: {
+                  items: filteredItems.sort((a: any, b: any) => b.id - a.id), // Terbaru di atas
+                  totalDaily: inc - exp,
+                },
+              }
+            : {}
+      },
+
+      formatDisplayDate(dateStr: string) {
+        const options: any = {
+          weekday: 'long',
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric',
+        }
+        const today = new Intl.DateTimeFormat('sv-SE', {
+          timeZone: 'Asia/Jakarta',
+        }).format(new Date())
+
+        if (dateStr === today)
+          return (
+            'Today, ' +
+            new Date(dateStr).toLocaleDateString('id-ID', {
+              day: 'numeric',
+              month: 'short',
+            })
+          )
+        return new Date(dateStr).toLocaleDateString('id-ID', options)
+      },
+
+      // Fungsi Toggle Mata
+      togglePrivacy() {
+        const newState = !this.showAmount
+        this.showAmount = newState
+        storage.setPrivacy(newState)
+        window.dispatchEvent(new Event('storage'))
+      },
+
+      // Fungsi ini dipanggil pas klik Tab atau tombol Search
+      handleFilter(type: any, value: any) {
+        if (type === 'tab') this.activeTab = value
+        if (type === 'category') this.activeCategory = value
+
+        this.loadAndGroupData()
+      },
+      loadAndGroupData() {
+        let allTrans = storage.getTransactions()
+
+        // 1. Filter berdasarkan Tab (All, Expense, Income, Transfer)
+        if (this.activeTab !== 'All') {
+          allTrans = allTrans.filter(
+            (t: any) => t.type.toLowerCase() === this.activeTab.toLowerCase()
+          )
+        }
+
+        // 2. Filter berdasarkan Category
+        if (this.activeCategory !== 'All') {
+          allTrans = allTrans.filter(
+            (t: any) => t.category === this.activeCategory
+          )
+        }
+
+        // 3. Filter berdasarkan Search Query
+        if (this.searchQuery) {
+          allTrans = allTrans.filter(
+            (t: any) =>
+              (t.notes &&
+                t.notes
+                  .toLowerCase()
+                  .includes(this.searchQuery.toLowerCase())) ||
+              (t.category &&
+                t.category
+                  .toLowerCase()
+                  .includes(this.searchQuery.toLowerCase()))
+          )
+        }
+
+        // Proses grouping data berdasarkan tanggal
+        const groups = allTrans.reduce((acc: any, item: any) => {
+          const dateKey = item.date
+          if (!acc[dateKey]) {
+            acc[dateKey] = { items: [], totalDaily: 0 }
+          }
+
+          acc[dateKey].items.push(item)
+
+          // REVISI LOGIKA: Total Transaksi (Income - Expense), Abaikan Transfer
+          const amt = Number(item.amount) || 0
+
+          if (item.type === 'income') {
+            acc[dateKey].totalDaily += amt
+          } else if (item.type === 'expense') {
+            acc[dateKey].totalDaily -= amt
+          }
+          // Jika item.type === 'transfer', kita abaikan (tidak nambah/kurang)
+
+          return acc
+        }, {})
+
+        // Urutkan tanggal dari yang terbaru (descending)
+        this.groupedTransactions = Object.keys(groups)
+          .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())
+          .reduce((obj: any, key) => {
+            obj[key] = groups[key]
+            return obj
+          }, {})
+      },
+
+      formatDateTitle(dateStr: string) {
+        const d = new Date(dateStr)
+        const today = new Intl.DateTimeFormat('sv-SE', {
+          timeZone: 'Asia/Jakarta',
+        }).format(new Date())
+
+        const options: any = { day: 'numeric', month: 'long', year: 'numeric' }
+        const dateFormatted = d.toLocaleDateString('id-ID', options)
+
+        if (dateStr === today) {
+          return `(Today) ${dateFormatted}`
+        }
+
+        const dayName = d.toLocaleDateString('id-ID', { weekday: 'long' })
+        return `${dayName}, ${dateFormatted}`
+      },
+    })
+  })
+</script>

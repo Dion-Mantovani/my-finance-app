@@ -1,0 +1,59 @@
+---
+// src/components/ExpenseFilters.astro
+const tabs = ['All', 'Expense', 'Income', 'Transfer'];
+const categories = ['All', 'Food & Drinks', 'Transportation', 'Shopping', 'Health', 'Subscription', 'Entertainment'];
+---
+
+<section class="mb-8">
+  <div class="relative mb-6 flex gap-2">
+    <div class="relative flex-1">
+      <i class="fa-solid fa-magnifying-glass absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+      <input
+        type="text"
+        x-model="searchQuery"
+        @keyup.enter="loadAndGroupData()"
+        placeholder="Search..."
+        class="w-full pl-11 pr-4 py-3.5 bg-slate-50 rounded-full border border-slate-200 outline-none font-semibold text-sm focus:border-indigo-500"
+      />
+    </div>
+    <button
+      @click="loadAndGroupData()"
+      class="bg-indigo-500 text-white px-6 rounded-full text-xs font-bold tracking-widest active:scale-95 transition-all"
+    >
+      Search
+    </button>
+  </div>
+
+  <div class="grid w-full gap-2">
+    <div class="flex min-w-0 flex-nowrap gap-2 pb-2 overflow-x-auto no-scrollbar">
+      {tabs.map((tab) => (
+        <button
+          @click={`handleFilter('tab', '${tab}')`}
+          class="px-6 py-2 rounded-full text-[10px] font-bold uppercase transition-all whitespace-nowrap shrink-0 shadow-sm"
+          :class={`activeTab === '${tab}' ? 'bg-indigo-600 text-white shadow-indigo-100' : 'text-slate-500 bg-slate-50 hover:bg-slate-100'`}
+        >
+          {tab}
+        </button>
+      ))}
+    </div>
+
+    <div class="flex min-w-0 flex-nowrap gap-2 pb-1 overflow-x-auto no-scrollbar">
+      <button
+        @click="handleFilter('category', 'All')"
+        class="px-6 py-2 rounded-full text-[10px] font-bold uppercase transition-all whitespace-nowrap shrink-0 shadow-sm"
+        :class="activeCategory === 'All' ? 'bg-indigo-600 text-white shadow-indigo-100' : 'text-slate-500 bg-slate-50 hover:bg-slate-100'"
+      >
+        All
+      </button>
+
+      <template x-for="cat in categoriesList" :key="cat.id || cat">
+        <button
+          @click="handleFilter('category', (typeof cat === 'object' ? cat.name : cat))"
+          class="px-6 py-2 rounded-full text-[10px] font-bold uppercase transition-all whitespace-nowrap shrink-0 shadow-sm"
+          :class="activeCategory === (typeof cat === 'object' ? cat.name : cat) ? 'bg-indigo-600 text-white shadow-indigo-100' : 'text-slate-500 bg-slate-50 hover:bg-slate-100'"
+          x-text="typeof cat === 'object' ? cat.name : cat"
+        ></button>
+      </template>
+    </div>
+  </div>
+</section>

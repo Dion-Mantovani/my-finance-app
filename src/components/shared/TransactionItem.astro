@@ -1,0 +1,91 @@
+---
+// src/components/shared/TransactionItem.astro
+
+const iconMap = {
+  Food: 'fa-utensils',
+  Transport: 'fa-car',
+  Shopping: 'fa-bag-shopping',
+  Health: 'fa-heart-pulse',
+  Subscription: 'fa-tv',
+  Gift: 'fa-gift',
+  Salary: 'fa-money-bill-trend-up',
+  Freelance: 'fa-laptop-code',
+  Transfer: 'fa-right-left',
+}
+---
+
+<template x-if="item">
+  <a
+    :href="`/transactions?edit=${item.id}`"
+    class="flex items-center justify-between p-4 bg-white rounded-3xl border border-slate-100 shadow-sm active:scale-[0.98] active:bg-slate-50 transition-all group mb-3"
+  >
+    <div class="flex items-center gap-4 text-left">
+      <div
+        class="w-11 h-11 rounded-2xl flex items-center justify-center text-sm"
+        :class=`{
+          'bg-emerald-50 text-emerald-500': item.type === 'income',
+          'bg-rose-50 text-rose-500': item.type === 'expense',
+          'bg-indigo-50 text-indigo-500': item.type === 'transfer'
+        }`
+      >
+        <i
+          class="fa-solid"
+          :class={`item.type === 'transfer' ? 'fa-right-left' : (${JSON.stringify(iconMap)}[item.category] || 'fa-wallet')`}
+        ></i>
+      </div>
+
+      <div class="flex flex-col pr-2">
+        <p
+          class="font-bold text-sm text-slate-800 leading-tight line-clamp-1"
+          x-text="item.notes || item.category || 'Transaction'"
+        >
+        </p>
+
+        <div
+          class="flex mt-0.5"
+          :class="item.type === 'transfer'? 'flex-col justify-center gap-0.5' : 'flex-row items-center gap-1.5'"
+        >
+          <span
+            class="text-[10px] font-bold text-indigo-500 uppercase tracking-tight"
+            x-text="item.category"></span>
+          <span
+            class="text-[10px] text-slate-300"
+            :class="item.type === 'transfer'? 'hidden' : 'block'">•</span
+          >
+          <div class="flex items-center gap-1">
+            <span
+              class="text-[10px] font-medium text-slate-400 uppercase tracking-wide"
+              x-text="item.walletSource"></span>
+
+            <template x-if="item.type === 'transfer'">
+              <div class="flex items-center gap-1">
+                <i class="fa-solid fa-arrow-right text-[8px] text-slate-400"
+                ></i>
+                <span
+                  class="text-[10px] font-medium text-slate-400 uppercase tracking-wide"
+                  x-text="item.walletDestName"></span>
+              </div>
+            </template>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex flex-col items-end w-28">
+      <p
+        class="font-black text-sm"
+        :class=`{
+          'text-emerald-500': item.type === 'income',
+          'text-rose-500': item.type === 'expense',
+          'text-indigo-500': item.type === 'transfer'
+        }`
+      >
+        <span
+          x-text="item.type === 'income' ? '+' : (item.type === 'transfer' ? '' : '-')"
+        ></span>
+        <span x-text="'Rp ' + Number(item.amount).toLocaleString('id-ID')"
+        ></span>
+      </p>
+    </div>
+  </a>
+</template>

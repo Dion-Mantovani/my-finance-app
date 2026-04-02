@@ -1,0 +1,17 @@
+---
+// src/components/transactions/TypeToggle.astro
+const types = ['expense', 'income', 'transfer'];
+---
+<div class="px-5 mb-2 shrink-0">
+  <div class="flex p-1 bg-slate-100 rounded-2xl w-full">
+    {types.map((t) => (
+      <button
+        @click={`type = '${t}'`}
+        :class={`type === '${t}' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400'`}
+        class="flex-1 py-2 text-[10px] font-bold rounded-xl transition-all uppercase tracking-wider"
+      >
+        {t}
+      </button>
+    ))}
+  </div>
+</div>

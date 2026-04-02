@@ -1,0 +1,481 @@
+---
+import MainLayout from '../layouts/MainLayout.astro'
+import StatsHeader from '../components/stats/StatsHeader.astro'
+import SpendingSummary from '../components/stats/SpendingSummary.astro'
+import CategoryList from '../components/stats/CategoryList.astro'
+import SmartInsight from '../components/stats/SmartInsight.astro'
+---
+
+<MainLayout title="Statistics">
+  <div class="mx-auto pb-32" x-data="statsPage()">
+    <StatsHeader />
+    <SpendingSummary />
+
+    <section class="mb-10 px-6">
+      <div
+        class="bg-[#1D1E20] p-6 rounded-[3rem] shadow-2xl shadow-slate-300/50 relative"
+      >
+        <div class="flex justify-between items-center mb-6 px-2">
+          <h3
+            class="text-white text-xs font-bold font-jakarta opacity-80 uppercase tracking-widest"
+          >
+            Cash Flow Projection
+          </h3>
+          <div class="flex gap-4">
+            <div class="flex items-center gap-1.5">
+              <div class="w-2 h-2 rounded-full bg-emerald-400"></div>
+              <span class="text-[9px] text-slate-400 font-bold uppercase"
+                >In</span
+              >
+            </div>
+            <div class="flex items-center gap-1.5">
+              <div class="w-2 h-2 rounded-full bg-rose-400"></div>
+              <span class="text-[9px] text-slate-400 font-bold uppercase"
+                >Out</span
+              >
+            </div>
+          </div>
+        </div>
+
+        <div class="min-h-62.5 w-full" x-ref="chartCanvas"></div>
+      </div>
+    </section>
+
+    <div class="px-6 space-y-8">
+      <CategoryList />
+      <div x-show="summary.totalIncome > 0 || summary.totalExpense > 0" x-cloak>
+        <SmartInsight />
+      </div>
+    </div>
+  </div>
+</MainLayout>
+
+<script>
+  import { storage } from '../utils/storage'
+  // @ts-ignore
+  import ApexCharts from 'apexcharts'
+
+  interface Transaction {
+    id: string
+    type: 'income' | 'expense' | 'transfer'
+    amount: number | string
+    category: string
+    date: string
+    walletSource?: string
+  }
+
+  document.addEventListener('alpine:init', () => {
+    ;(window as any).statsPage = () => ({
+      timeFrame: 'Weekly', // Default tab
+      chart: null as ApexCharts | null,
+      topCategories: [] as any[],
+      summary: {
+        totalIncome: 0,
+        totalExpense: 0,
+        savingsRate: 0,
+      },
+      insight: {
+        status: 'Analysing...',
+        message: 'Mohon tunggu, sedang menghitung data keuanganmu.',
+      },
+
+      init() {
+        this.refreshStats()
+
+        // Tambahkan (this as any) agar TS tidak error
+        ;(this as any).$watch('timeFrame', () => {
+          this.refreshStats()
+        })
+
+        window.addEventListener('storage', (e) => {
+          if (e.key === 'DION_TRANSACTIONS') this.refreshStats()
+        })
+      },
+
+      refreshStats() {
+        const transactions = storage.getTransactions()
+        const settings = storage.getSettings()
+
+        // 1. Panggil Parser (Akan kita buat fungsinya di bawah)
+        const parsedData = this.parseTransactionData(
+          transactions,
+          this.timeFrame
+        )
+
+        // 2. Update State untuk Summary & Kategori
+        this.summary = parsedData.summary
+        this.topCategories = parsedData.categories
+        this.insight = parsedData.insight
+
+        // 3. Update Grafik dengan Best Practice (Destroy & Recreate)
+        this.renderChart(parsedData.chartSeries, parsedData.chartLabels)
+      },
+
+      // --- LOGIKA PARSER (OTAK ANALYTICS) ---
+      parseTransactionData(transactions: Transaction[], frame: string) {
+        const now = new Date()
+        const currentMonth = now.getMonth()
+        const currentYear = now.getFullYear()
+
+        // --- 1. FILTER UNTUK SUMMARY & CATEGORY LIST (Bulan Berjalan) ---
+        const summaryFiltered = transactions.filter((t) => {
+          const d = new Date(t.date)
+          if (frame === 'Yearly') return d.getFullYear() === currentYear
+          return (
+            d.getMonth() === currentMonth && d.getFullYear() === currentYear
+          )
+        })
+
+        // --- 2. IDENTIFIKASI PERIODE LALU UNTUK HITUNG TREND ---
+        // Cari tahu bulan lalu itu bulan apa dan tahun berapa
+        const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1
+        const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear
+
+        // --- 3. HITUNG SUMMARY (Income vs Expense) ---
+        let totalIn = 0
+        let totalOut = 0
+        const categoryMap: Record<string, number> = {}
+
+        summaryFiltered.forEach((t) => {
+          const amt = Number(t.amount) || 0
+          if (t.type === 'income') {
+            totalIn += amt
+          } else if (t.type === 'expense') {
+            totalOut += amt
+            categoryMap[t.category] = (categoryMap[t.category] || 0) + amt
+          }
+        })
+
+        // --- 4. FORMAT DATA KATEGORI DENGAN REAL TREND % ---
+        const categories = Object.keys(categoryMap)
+          .map((catName) => {
+            const currentAmt = categoryMap[catName]
+
+            // Hitung berapa pengeluaran kategori ini di BULAN LALU
+            const prevAmt = transactions
+              .filter(
+                (t) =>
+                  t.category === catName &&
+                  t.type === 'expense' &&
+                  new Date(t.date).getMonth() === lastMonth &&
+                  new Date(t.date).getFullYear() === lastMonthYear
+              )
+              .reduce((sum, t) => sum + (Number(t.amount) || 0), 0)
+
+            // Kalkulasi Persentase Perubahan
+            let trend: 'up' | 'down' = 'up'
+            let trendText = ''
+
+            if (prevAmt > 0) {
+              const diffPercent = ((currentAmt - prevAmt) / prevAmt) * 100
+              trend = diffPercent >= 0 ? 'up' : 'down'
+              const absPercent = Math.abs(Math.round(diffPercent))
+
+              // Jika naik 0% atau sangat kecil, anggap stabil/down
+              trendText =
+                absPercent > 0
+                  ? `${trend === 'up' ? 'naik' : 'lebih hemat'} ${absPercent}%`
+                  : 'Stabil'
+            } else {
+              // Jika bulan lalu 0, berarti ini pengeluaran baru di kategori ini
+              trend = 'up'
+              trendText = 'Baru bulan ini'
+            }
+
+            return {
+              name: catName,
+              amount: currentAmt,
+              percentage: totalOut > 0 ? (currentAmt / totalOut) * 100 : 0,
+              icon: this.getIconByCategory(catName),
+              color: this.getColorByCategory(catName),
+              trend: trend,
+              trendText: trendText,
+            }
+          })
+          .sort((a, b) => b.amount - a.amount) // Urutkan yang paling boros di atas
+
+        // --- 5. GENERATE DATA CHART (Trend 3 Periode) ---
+        const chartData = this.generateChartData(transactions, frame)
+
+        const savingsRate =
+          totalIn > 0 ? ((totalIn - totalOut) / totalIn) * 100 : 0
+
+        return {
+          summary: {
+            totalIncome: totalIn,
+            totalExpense: totalOut,
+            savingsRate: Math.max(0, Math.round(savingsRate)),
+          },
+          categories: categories,
+          insight: this.generateSmartInsight(totalIn, totalOut, savingsRate),
+          chartSeries: chartData.series,
+          chartLabels: chartData.labels,
+        }
+      },
+
+      generateSmartInsight(
+        totalIn: number,
+        totalOut: number,
+        savingsRate: number
+      ) {
+        const transactions = storage.getTransactions()
+        const now = new Date()
+
+        // Helper: Cek pengeluaran kategori tertentu
+        const getCatTotal = (catName: string) =>
+          transactions
+            .filter(
+              (t: any) =>
+                t.category === catName &&
+                new Date(t.date).getMonth() === now.getMonth()
+            )
+            .reduce((sum: any, t: any) => sum + Number(t.amount), 0)
+
+        const foodTotal = getCatTotal('Food')
+        const shoppingTotal = getCatTotal('Shopping')
+
+        // 1. Kasus: Baru mulai (Data Kosong)
+        if (totalIn === 0 && totalOut === 0)
+          return {
+            status: 'Halo Dion!',
+            message:
+              'Mulai catat transaksimu hari ini untuk melihat analisis keuangan yang cerdas di sini.',
+          }
+
+        // 2. Kasus: Defisit (Danger)
+        if (totalOut > totalIn && totalIn > 0)
+          return {
+            status: 'Dompet Kritis!',
+            message:
+              'Pengeluaranmu sudah menjebol pemasukan. Coba cek kategori paling boros dan mulai ngerem pengeluaran ya!',
+          }
+
+        // 3. Kasus: Nabung Banyak (Excellent)
+        if (savingsRate >= 40)
+          return {
+            status: 'Master of Saving',
+            message: `Gokil! Kamu berhasil nabung ${Math.round(savingsRate)}% bulan ini. Pertahankan gaya hidup hemat ini, Dion!`,
+          }
+
+        // 4. Kasus: Foodie (Boros di Makan)
+        if (foodTotal > totalOut * 0.5)
+          return {
+            status: 'Foodie Alert!',
+            message:
+              'Lebih dari 50% pengeluaranmu lari ke makanan. Mungkin sudah saatnya coba masak sendiri di rumah?',
+          }
+
+        // 5. Kasus: Impulsive Shopping
+        if (shoppingTotal > totalIn * 0.2)
+          return {
+            status: 'Rem Belanja!',
+            message:
+              'Belanja shopping kamu sudah tembus 20% gajian. Pastikan beli karena butuh, bukan sekadar laper mata.',
+          }
+
+        // 6. Kasus: Pas-pasan (Breaking Even)
+        if (savingsRate > 0 && savingsRate < 10)
+          return {
+            status: 'Zona Tipis',
+            message:
+              'Tabunganmu di bawah 10%. Coba pangkas pengeluaran kecil yang nggak perlu biar saldo akhir bulan lebih aman.',
+          }
+
+        // 7. Kasus: Income Hunter (Banyak Income)
+        const incomeCount = transactions.filter(
+          (t: any) =>
+            t.type === 'income' &&
+            new Date(t.date).getMonth() === now.getMonth()
+        ).length
+        if (incomeCount > 3)
+          return {
+            status: 'Side Hustle King',
+            message:
+              'Gue liat ada banyak sumber pemasukan masuk. Manajemen cashflow-mu makin oke nih!',
+          }
+
+        // 8. Kasus: Konsisten (Stable)
+        return {
+          status: 'Keuangan Aman',
+          message:
+            'Sejauh ini ritme keuanganmu cukup stabil. Tetap disiplin catat transaksi biar nggak ada yang kelewat!',
+        }
+      },
+
+      // Fungsi Pembantu biar chart-nya dinamis
+      generateChartData(filtered: Transaction[], frame: string) {
+        const now = new Date()
+        let labels: string[] = []
+        let incomeData: number[] = []
+        let expenseData: number[] = []
+
+        if (frame === 'Weekly') {
+          labels = ['Week 1', 'Week 2', 'Week 3', 'Week 4']
+          incomeData = [0, 0, 0, 0]
+          expenseData = [0, 0, 0, 0]
+
+          filtered.forEach((t: Transaction) => {
+            const d = new Date(t.date).getDate()
+            const idx = Math.min(Math.floor((d - 1) / 7), 3)
+            const amt = Number(t.amount) || 0
+            if (t.type === 'income') incomeData[idx] += amt
+            else if (t.type === 'expense') expenseData[idx] += amt
+          })
+        } else if (frame === 'Monthly') {
+          const monthNames = [
+            'Jan',
+            'Feb',
+            'Mar',
+            'Apr',
+            'May',
+            'Jun',
+            'Jul',
+            'Aug',
+            'Sep',
+            'Oct',
+            'Nov',
+            'Dec',
+          ]
+          // Ambil 3 bulan terakhir
+          const months = [
+            new Date(now.getFullYear(), now.getMonth() - 2, 1),
+            new Date(now.getFullYear(), now.getMonth() - 1, 1),
+            new Date(now.getFullYear(), now.getMonth(), 1),
+          ]
+
+          labels = months.map((m) => monthNames[m.getMonth()])
+          incomeData = [0, 0, 0]
+          expenseData = [0, 0, 0]
+
+          const allTransactions = storage.getTransactions() as Transaction[]
+          allTransactions.forEach((t: Transaction) => {
+            const tDate = new Date(t.date)
+            const amt = Number(t.amount) || 0
+
+            months.forEach((m, idx) => {
+              if (
+                tDate.getMonth() === m.getMonth() &&
+                tDate.getFullYear() === m.getFullYear()
+              ) {
+                if (t.type === 'income') incomeData[idx] += amt
+                else if (t.type === 'expense') expenseData[idx] += amt
+              }
+            })
+          })
+        } else if (frame === 'Yearly') {
+          const years = [
+            now.getFullYear() - 2,
+            now.getFullYear() - 1,
+            now.getFullYear(),
+          ]
+          labels = years.map((y) => y.toString())
+          incomeData = [0, 0, 0]
+          expenseData = [0, 0, 0]
+
+          const allTransactions = storage.getTransactions() as Transaction[]
+          allTransactions.forEach((t: Transaction) => {
+            const tYear = new Date(t.date).getFullYear()
+            const amt = Number(t.amount) || 0
+            const idx = years.indexOf(tYear)
+
+            if (idx !== -1) {
+              if (t.type === 'income') incomeData[idx] += amt
+              else if (t.type === 'expense') expenseData[idx] += amt
+            }
+          })
+        }
+
+        return {
+          series: [
+            { name: 'In', data: incomeData },
+            { name: 'Out', data: expenseData },
+          ],
+          labels: labels,
+        }
+      },
+
+      // Helper buat Visual (Icon & Warna)
+      getIconByCategory(cat: string) {
+        const icons: Record<string, string> = {
+          Food: 'fa-utensils',
+          Transport: 'fa-car',
+          Shopping: 'fa-bag-shopping',
+          Salary: 'fa-wallet',
+          Health: 'fa-heart-pulse',
+        }
+        return icons[cat] || 'fa-tag'
+      },
+
+      getColorByCategory(cat: string) {
+        const colors: Record<string, string> = {
+          Food: 'bg-orange-400',
+          Transport: 'bg-blue-400',
+          Shopping: 'bg-purple-400',
+          Salary: 'bg-emerald-400',
+        }
+        return colors[cat] || 'bg-slate-400'
+      },
+
+      renderChart(series: any[], labels: string[]) {
+        // BEST PRACTICE: Hancurkan chart lama agar tidak memory leak
+        if (this.chart) {
+          this.chart.destroy()
+        }
+
+        const options = {
+          series: series,
+          chart: {
+            type: 'area', // Kita pake area biar lebih cakep dari bar standar
+            height: 250,
+            toolbar: { show: false },
+            zoom: { enabled: false },
+            fontFamily: 'Plus Jakarta Sans, sans-serif',
+          },
+          colors: ['#34d399', '#fb7185'], // Emerald 400 & Rose 400
+          dataLabels: { enabled: false },
+          stroke: { curve: 'smooth', width: 3 },
+          fill: {
+            type: 'gradient',
+            gradient: { opacityFrom: 0.4, opacityTo: 0 },
+          },
+          grid: { borderColor: '#334155', strokeDashArray: 4 },
+          xaxis: {
+            categories: labels, // Ini yang bakal nampilin Jan, Feb, Mar dsb
+            labels: {
+              show: true,
+              style: {
+                colors: '#94a3b8',
+                fontSize: '11px',
+                fontWeight: 600,
+              },
+            },
+            axisBorder: { show: false },
+            axisTicks: { show: false },
+          },
+          yaxis: { show: false },
+          legend: { show: false },
+          tooltip: { theme: 'dark' },
+        }
+
+        // @ts-ignore
+        this.chart = new ApexCharts((this as any).$refs.chartCanvas, options)
+        this.chart.render()
+      },
+    })
+  })
+</script>
+
+<style>
+  [x-cloak] {
+    display: none !important;
+  }
+
+  /* Menghilangkan scrollbar di modal atau section tertentu */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+</style>
