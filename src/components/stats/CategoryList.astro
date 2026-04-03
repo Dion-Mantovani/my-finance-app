@@ -2,6 +2,113 @@
 // src/components/stats/CategoryList.astro
 ---
 
+<section class="mb-10" x-data="{ showAll: false }">
+  <div class="mb-6">
+    <h3 class="text-[#1D1E20] text-xl font-black font-jakarta">Top Spending</h3>
+    <p
+      class="text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-1"
+    >
+      Based on category share
+    </p>
+  </div>
+
+  <div class="space-y-6">
+    <template x-for="(cat, index) in topCategories" :key="cat.name">
+      <div
+        class="group"
+        x-show="index < 5 || showAll"
+        x-transition:enter="transition ease-out duration-300"
+        x-transition:enter-start="opacity-0 transform -translate-y-2"
+        x-transition:enter-end="opacity-100 transform translate-y-0"
+      >
+        <div class="flex justify-between items-center mb-3">
+          <div class="flex items-center gap-4">
+            <div
+              class="w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-sm transition-transform group-hover:scale-105"
+              :class="cat.color"
+            >
+              <i class="fa-solid" :class="cat.icon"></i>
+            </div>
+
+            <div>
+              <h4 class="font-black text-[#1D1E20] text-sm" x-text="cat.name">
+              </h4>
+              <div class="flex items-center gap-1.5 mt-0.5">
+                <i
+                  class="fa-solid text-[10px]"
+                  x-show="cat.trendText !== 'Baru bulan ini'"
+                  :class="cat.trend === 'up' ? 'fa-arrow-up text-rose-500' : 'fa-arrow-down text-emerald-500'"
+                ></i>
+
+                <span
+                  class="text-[10px] font-black tracking-tight uppercase"
+                  :class=`{
+                    'text-rose-500': cat.trend === 'up' && cat.trendText !== 'Baru bulan ini',
+                    'text-emerald-500': cat.trend === 'down' && cat.trendText !== 'Baru bulan ini',
+                    'text-slate-400': cat.trendText === 'Baru bulan ini'
+                  }`
+                  x-text="cat.trendText"></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="text-right">
+            <p
+              class="font-black text-[#1D1E20] text-sm"
+              x-text="'Rp ' + Number(cat.amount).toLocaleString('id-ID')"
+            >
+            </p>
+            <p
+              class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5"
+              x-text="Math.round(cat.percentage) + '% of total'"
+            >
+            </p>
+          </div>
+        </div>
+
+        <div class="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+          <div
+            class="h-full transition-all duration-1000 ease-out rounded-full"
+            :class="cat.color"
+            :style="`width: ${cat.percentage}%`"
+          >
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <div
+      x-show="topCategories.length === 0"
+      class="py-10 text-center border-2 border-dashed border-slate-100 rounded-[2.5rem]"
+    >
+      <p
+        class="text-slate-400 text-[10px] font-black uppercase tracking-widest"
+      >
+        Belum ada data pengeluaran
+      </p>
+    </div>
+  </div>
+
+  <div x-show="topCategories.length > 5" class="mt-10 flex justify-center">
+    <button
+      @click="showAll = !showAll"
+      type="button"
+      class="group flex items-center gap-3 px-8 py-3.5 rounded-full bg-slate-50 hover:bg-indigo-50 transition-all active:scale-95 border border-slate-100"
+    >
+      <span
+        class="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em]"
+        x-text="showAll ? 'Sembunyikan' : 'Lihat Semua Kategori'"></span>
+      <i
+        class="fa-solid text-[10px] text-indigo-600 transition-transform duration-300"
+        :class="showAll ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+    </button>
+  </div>
+</section>
+
+<!-- ---
+// src/components/stats/CategoryList.astro
+---
+
 <section class="mb-10">
   <div class="flex justify-between items-end mb-6">
     <div>
@@ -83,4 +190,4 @@
       </div>
     </template>
   </div>
-</section>
+</section> -->

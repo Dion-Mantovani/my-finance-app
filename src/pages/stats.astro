@@ -9,9 +9,8 @@ import SmartInsight from '../components/stats/SmartInsight.astro'
 <MainLayout title="Statistics">
   <div class="mx-auto pb-32" x-data="statsPage()">
     <StatsHeader />
-    <SpendingSummary />
 
-    <section class="mb-10 px-6">
+    <section class="mb-5">
       <div
         class="bg-[#1D1E20] p-6 rounded-[3rem] shadow-2xl shadow-slate-300/50 relative"
       >
@@ -41,12 +40,13 @@ import SmartInsight from '../components/stats/SmartInsight.astro'
       </div>
     </section>
 
-    <div class="px-6 space-y-8">
-      <CategoryList />
-      <div x-show="summary.totalIncome > 0 || summary.totalExpense > 0" x-cloak>
-        <SmartInsight />
-      </div>
+    <SpendingSummary />
+
+    <div x-show="summary.totalIncome > 0 || summary.totalExpense > 0" x-cloak>
+      <SmartInsight />
     </div>
+
+    <CategoryList />
   </div>
 </MainLayout>
 
@@ -61,7 +61,7 @@ import SmartInsight from '../components/stats/SmartInsight.astro'
     amount: number | string
     category: string
     date: string
-    walletSource?: string
+    walletId?: number | string
   }
 
   document.addEventListener('alpine:init', () => {
@@ -93,8 +93,7 @@ import SmartInsight from '../components/stats/SmartInsight.astro'
       },
 
       refreshStats() {
-        const transactions = storage.getTransactions()
-        const settings = storage.getSettings()
+        const transactions = storage.getTransactions() || []
 
         // 1. Panggil Parser (Akan kita buat fungsinya di bawah)
         const parsedData = this.parseTransactionData(
@@ -188,11 +187,11 @@ import SmartInsight from '../components/stats/SmartInsight.astro'
               percentage: totalOut > 0 ? (currentAmt / totalOut) * 100 : 0,
               icon: this.getIconByCategory(catName),
               color: this.getColorByCategory(catName),
-              trend: trend,
-              trendText: trendText,
+              trend,
+              trendText,
             }
           })
-          .sort((a, b) => b.amount - a.amount) // Urutkan yang paling boros di atas
+          .sort((a, b) => b.amount - a.amount)
 
         // --- 5. GENERATE DATA CHART (Trend 3 Periode) ---
         const chartData = this.generateChartData(transactions, frame)
@@ -310,79 +309,132 @@ import SmartInsight from '../components/stats/SmartInsight.astro'
         let expenseData: number[] = []
 
         if (frame === 'Weekly') {
-          labels = ['Week 1', 'Week 2', 'Week 3', 'Week 4']
-          incomeData = [0, 0, 0, 0]
-          expenseData = [0, 0, 0, 0]
+          labels = ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5']
+          incomeData = [0, 0, 0, 0, 0]
+          expenseData = [0, 0, 0, 0, 0]
 
           filtered.forEach((t: Transaction) => {
-            const d = new Date(t.date).getDate()
-            const idx = Math.min(Math.floor((d - 1) / 7), 3)
-            const amt = Number(t.amount) || 0
-            if (t.type === 'income') incomeData[idx] += amt
-            else if (t.type === 'expense') expenseData[idx] += amt
-          })
-        } else if (frame === 'Monthly') {
-          const monthNames = [
-            'Jan',
-            'Feb',
-            'Mar',
-            'Apr',
-            'May',
-            'Jun',
-            'Jul',
-            'Aug',
-            'Sep',
-            'Oct',
-            'Nov',
-            'Dec',
-          ]
-          // Ambil 3 bulan terakhir
-          const months = [
-            new Date(now.getFullYear(), now.getMonth() - 2, 1),
-            new Date(now.getFullYear(), now.getMonth() - 1, 1),
-            new Date(now.getFullYear(), now.getMonth(), 1),
-          ]
-
-          labels = months.map((m) => monthNames[m.getMonth()])
-          incomeData = [0, 0, 0]
-          expenseData = [0, 0, 0]
-
-          const allTransactions = storage.getTransactions() as Transaction[]
-          allTransactions.forEach((t: Transaction) => {
-            const tDate = new Date(t.date)
-            const amt = Number(t.amount) || 0
-
-            months.forEach((m, idx) => {
-              if (
-                tDate.getMonth() === m.getMonth() &&
-                tDate.getFullYear() === m.getFullYear()
-              ) {
-                if (t.type === 'income') incomeData[idx] += amt
-                else if (t.type === 'expense') expenseData[idx] += amt
-              }
-            })
-          })
-        } else if (frame === 'Yearly') {
-          const years = [
-            now.getFullYear() - 2,
-            now.getFullYear() - 1,
-            now.getFullYear(),
-          ]
-          labels = years.map((y) => y.toString())
-          incomeData = [0, 0, 0]
-          expenseData = [0, 0, 0]
-
-          const allTransactions = storage.getTransactions() as Transaction[]
-          allTransactions.forEach((t: Transaction) => {
-            const tYear = new Date(t.date).getFullYear()
-            const amt = Number(t.amount) || 0
-            const idx = years.indexOf(tYear)
-
-            if (idx !== -1) {
+            // const d = new Date(t.date).getDate()
+            // const idx = Math.min(Math.floor((d - 1) / 7), 3)
+            // const amt = Number(t.amount) || 0
+            // if (t.type === 'income') incomeData[idx] += amt
+            // else if (t.type === 'expense') expenseData[idx] += amt
+            const d = new Date(t.date)
+            if (
+              d.getMonth() === now.getMonth() &&
+              d.getFullYear() === now.getFullYear()
+            ) {
+              const day = d.getDate()
+              const idx = Math.min(Math.floor((day - 1) / 7), 4)
+              const amt = Number(t.amount) || 0
               if (t.type === 'income') incomeData[idx] += amt
               else if (t.type === 'expense') expenseData[idx] += amt
             }
           })
+        } else if (frame === 'Monthly') {
+          // const monthNames = [
+          //   'Jan',
+          //   'Feb',
+          //   'Mar',
+          //   'Apr',
+          //   'May',
+          //   'Jun',
+          //   'Jul',
+          //   'Aug',
+          //   'Sep',
+          //   'Oct',
+          //   'Nov',
+          //   'Dec',
+          // ]
+          // // Ambil 3 bulan terakhir
+          // const months = [
+          //   new Date(now.getFullYear(), now.getMonth() - 2, 1),
+          //   new Date(now.getFullYear(), now.getMonth() - 1, 1),
+          //   new Date(now.getFullYear(), now.getMonth(), 1),
+          // ]
+
+          // labels = months.map((m) => monthNames[m.getMonth()])
+          // incomeData = [0, 0, 0]
+          // expenseData = [0, 0, 0]
+
+          // const allTransactions = storage.getTransactions() as Transaction[]
+          // allTransactions.forEach((t: Transaction) => {
+          //   const tDate = new Date(t.date)
+          //   const amt = Number(t.amount) || 0
+
+          //   months.forEach((m, idx) => {
+          //     if (
+          //       tDate.getMonth() === m.getMonth() &&
+          //       tDate.getFullYear() === m.getFullYear()
+          //     ) {
+          //       if (t.type === 'income') incomeData[idx] += amt
+          //       else if (t.type === 'expense') expenseData[idx] += amt
+          //     }
+          //   })
+          // })
+          // --- 6 BULAN TERAKHIR ---
+          for (let i = 5; i >= 0; i--) {
+            const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+            labels.push(d.toLocaleString('id-ID', { month: 'short' }))
+
+            const m = d.getMonth()
+            const y = d.getFullYear()
+
+            const monthly = filtered.filter((t) => {
+              const td = new Date(t.date)
+              return td.getMonth() === m && td.getFullYear() === y
+            })
+
+            incomeData.push(
+              monthly
+                .filter((t) => t.type === 'income')
+                .reduce((s, t) => s + Number(t.amount), 0)
+            )
+            expenseData.push(
+              monthly
+                .filter((t) => t.type === 'expense')
+                .reduce((s, t) => s + Number(t.amount), 0)
+            )
+          }
+        } else if (frame === 'Yearly') {
+          // const years = [
+          //   now.getFullYear() - 2,
+          //   now.getFullYear() - 1,
+          //   now.getFullYear(),
+          // ]
+          // labels = years.map((y) => y.toString())
+          // incomeData = [0, 0, 0]
+          // expenseData = [0, 0, 0]
+
+          // const allTransactions = storage.getTransactions() as Transaction[]
+          // allTransactions.forEach((t: Transaction) => {
+          //   const tYear = new Date(t.date).getFullYear()
+          //   const amt = Number(t.amount) || 0
+          //   const idx = years.indexOf(tYear)
+
+          //   if (idx !== -1) {
+          //     if (t.type === 'income') incomeData[idx] += amt
+          //     else if (t.type === 'expense') expenseData[idx] += amt
+          //   }
+          // })
+          for (let i = 2; i >= 0; i--) {
+            const targetYear = now.getFullYear() - i
+            labels.push(targetYear.toString())
+
+            const yearly = filtered.filter(
+              (t) => new Date(t.date).getFullYear() === targetYear
+            )
+            incomeData.push(
+              yearly
+                .filter((t) => t.type === 'income')
+                .reduce((s, t) => s + Number(t.amount), 0)
+            )
+            expenseData.push(
+              yearly
+                .filter((t) => t.type === 'expense')
+                .reduce((s, t) => s + Number(t.amount), 0)
+            )
+          }
         }
 
         return {
@@ -417,30 +469,68 @@ import SmartInsight from '../components/stats/SmartInsight.astro'
       },
 
       renderChart(series: any[], labels: string[]) {
-        // BEST PRACTICE: Hancurkan chart lama agar tidak memory leak
         if (this.chart) {
           this.chart.destroy()
         }
 
+        const isWeekly = this.timeFrame === 'Weekly'
+        const chartType = isWeekly ? 'bar' : 'area'
+
         const options = {
           series: series,
           chart: {
-            type: 'area', // Kita pake area biar lebih cakep dari bar standar
+            type: chartType,
             height: 250,
             toolbar: { show: false },
             zoom: { enabled: false },
             fontFamily: 'Plus Jakarta Sans, sans-serif',
+            // Menghilangkan shadow di chart container jika ada
+            dropShadow: { enabled: false },
           },
-          colors: ['#34d399', '#fb7185'], // Emerald 400 & Rose 400
+          plotOptions: {
+            bar: {
+              borderRadius: 6,
+              columnWidth: '60%',
+              borderRadiusApplication: 'around',
+              // Memastikan tidak ada shadow bawaan dari plot
+              dataLabels: { position: 'top' },
+            },
+          },
+          colors: ['#34d399', '#FF2056'],
           dataLabels: { enabled: false },
-          stroke: { curve: 'smooth', width: 3 },
-          fill: {
-            type: 'gradient',
-            gradient: { opacityFrom: 0.4, opacityTo: 0 },
+          stroke: {
+            curve: 'smooth',
+            width: isWeekly ? 0 : 3,
           },
-          grid: { borderColor: '#334155', strokeDashArray: 4 },
+          // BAGIAN INI YANG DIUBAH JADI SOLID
+          fill: {
+            // Untuk Area Chart, kita pake gradient tapi opacity-nya diturunin
+            type: isWeekly ? 'solid' : 'gradient',
+            gradient: {
+              shadeIntensity: 1,
+              opacityFrom: isWeekly ? 1 : 0.5, // Turunin dari 0.4 ke 0.3 biar lebih tembus pandang
+              opacityTo: 0, // Biar menghilang halus ke bawah
+              stops: [0, 90, 100],
+            },
+            opacity: isWeekly ? 1 : 0.4,
+          },
+
+          // Memastikan tidak ada efek shadow/glow pada garis atau batang
+          states: {
+            hover: {
+              filter: { type: 'none' },
+            },
+            active: {
+              filter: { type: 'none' },
+            },
+          },
+          grid: {
+            borderColor: '#334155',
+            strokeDashArray: 4,
+            padding: { left: 10, right: 10 },
+          },
           xaxis: {
-            categories: labels, // Ini yang bakal nampilin Jan, Feb, Mar dsb
+            categories: labels,
             labels: {
               show: true,
               style: {
@@ -454,7 +544,15 @@ import SmartInsight from '../components/stats/SmartInsight.astro'
           },
           yaxis: { show: false },
           legend: { show: false },
-          tooltip: { theme: 'dark' },
+          tooltip: {
+            theme: 'dark',
+            x: { show: true },
+            // Menghilangkan drop shadow di tooltip agar konsisten
+            style: { fontSize: '12px' },
+            y: {
+              formatter: (val: number) => 'Rp ' + val.toLocaleString('id-ID'),
+            },
+          },
         }
 
         // @ts-ignore

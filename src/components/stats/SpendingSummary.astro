@@ -1,46 +1,75 @@
-<section class="px-6 mb-10">
-  <div class="grid grid-cols-3 gap-4">
-    <div
-      class="bg-white p-5 rounded-[2.5rem] border border-slate-100 shadow-sm"
-    >
-      <p
-        class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1"
-      >
-        Income
-      </p>
-      <h4
-        class="text-sm font-black text-emerald-500 font-jakarta"
-        x-text="'Rp' + Number(summary.totalIncome).toLocaleString('id-ID')"
-      >
-      </h4>
+<section class="mb-5">
+  <div
+    class="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden"
+  >
+    <div class="flex divide-x divide-slate-100 border-b border-slate-50">
+      <div class="flex-1 p-6">
+        <p
+          class="text-[10px] font-black text-emerald-500 uppercase tracking-[0.2em] mb-2"
+        >
+          Income
+        </p>
+        <div class="flex items-baseline gap-1">
+          <span class="text-xs font-bold text-slate-400">Rp</span>
+          <h4
+            class="text-lg font-black text-slate-800 font-jakarta tracking-tight"
+            x-text="Number(summary.totalIncome).toLocaleString('id-ID')"
+          >
+            0
+          </h4>
+        </div>
+      </div>
+
+      <div class="flex-1 p-6">
+        <p
+          class="text-[10px] font-black text-rose-500 uppercase tracking-[0.2em] mb-2"
+        >
+          Expense
+        </p>
+        <div class="flex items-baseline gap-1">
+          <span class="text-xs font-bold text-slate-400">Rp</span>
+          <h4
+            class="text-lg font-black text-slate-800 font-jakarta tracking-tight"
+            x-text="Number(summary.totalExpense).toLocaleString('id-ID')"
+          >
+            0
+          </h4>
+        </div>
+      </div>
     </div>
-    <div
-      class="bg-white p-5 rounded-[2.5rem] border border-slate-100 shadow-sm"
-    >
-      <p
-        class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1"
+
+    <div class="p-6 bg-slate-50/50">
+      <div class="flex justify-between items-end mb-3">
+        <div>
+          <p
+            class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1"
+          >
+            Saving Rate
+          </p>
+          <h5 class="text-sm font-bold text-indigo-600">
+            Efficiency: <span x-text="summary.savingsRate + '%'"></span>
+          </h5>
+        </div>
+        <span
+          class="px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider"
+          :class="summary.savingsRate >= 30 ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'"
+          x-text="summary.savingsRate >= 30 ? 'Healthy' : 'Caution'"></span>
+      </div>
+
+      <div
+        class="relative w-full h-3 bg-slate-200 rounded-full overflow-hidden shadow-inner"
       >
-        Expense
+        <div
+          class="h-full bg-linear-to-r from-indigo-500 to-indigo-400 rounded-full transition-all duration-1000 ease-out relative"
+          :style="`width: ${summary.savingsRate}%`"
+        >
+          <div class="absolute inset-0 bg-white/20 animate-pulse"></div>
+        </div>
+      </div>
+
+      <p class="text-[9px] font-medium text-slate-400 mt-3 italic">
+        *Target ideal saving rate adalah di atas 30%
       </p>
-      <h4
-        class="text-sm font-black text-rose-500 font-jakarta"
-        x-text="'Rp' + Number(summary.totalExpense).toLocaleString('id-ID')"
-      >
-      </h4>
-    </div>
-    <div
-      class="bg-white p-5 rounded-[2.5rem] border border-slate-100 shadow-sm"
-    >
-      <p
-        class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1"
-      >
-        Savings
-      </p>
-      <h4
-        class="text-sm font-black text-indigo-600 font-jakarta"
-        x-text="summary.savingsRate + '%'"
-      >
-      </h4>
     </div>
   </div>
 </section>
