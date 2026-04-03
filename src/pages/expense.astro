@@ -372,14 +372,110 @@ import Filter from '../components/expense/Filter.astro'
         })
       },
 
+      // loadData() {
+      //   const settings = storage.getSettings() as any
+      //   const wallets = settings.wallets || []
+      //   const allRawData = storage.getTransactions() || []
+
+      //   this.categories = settings.categories || []
+      //   this.wallets = wallets
+
+      //   // STEP 1: Enrich Data
+      //   const enrichedData = allRawData.map((item: any) => {
+      //     // Cari wallet berdasarkan walletId (sesuai kata lo)
+      //     const source = wallets.find(
+      //       (w: any) => String(w.id) === String(item.walletId)
+      //     )
+
+      //     // Cari wallet tujuan jika ada (untuk transfer)
+      //     const dest = item.walletIdDest
+      //       ? wallets.find(
+      //           (w: any) => String(w.id) === String(item.walletIdDest)
+      //         )
+      //       : null
+
+      //     return {
+      //       ...item,
+      //       // PENTING: Kita "timpa" atau "isi" field walletSource dengan NAMA dompetnya
+      //       // Karena TransactionItem.astro lo manggilnya x-text="item.walletSource"
+      //       walletSource: source ? source.name : 'Unknown Wallet',
+      //       walletDestName: dest ? dest.name : '',
+
+      //       // Simpan ID asli di field lain kalau butuh buat logic filter
+      //       originalWalletId: item.walletId,
+      //     }
+      //   })
+
+      //   this.transactions = enrichedData
+
+      //   // STEP 2: Filter Data
+      //   let filtered = enrichedData.filter((t: any) => {
+      //     const matchesDate =
+      //       this.startDate && this.endDate
+      //         ? t.date >= this.startDate && t.date <= this.endDate
+      //         : t.date === this.selectedDate
+
+      //     const matchesSearch =
+      //       (t.notes || '')
+      //         .toLowerCase()
+      //         .includes(this.searchQuery.toLowerCase()) ||
+      //       (t.category || '')
+      //         .toLowerCase()
+      //         .includes(this.searchQuery.toLowerCase())
+
+      //     const matchesType =
+      //       this.filterType === 'all' ? true : t.type === this.filterType
+
+      //     // Filter Wallet (Cek kecocokan NAMA yang sudah kita masukkan ke walletSource)
+      //     const matchesWallet =
+      //       this.filterWallet === 'all'
+      //         ? true
+      //         : t.walletSource === this.filterWallet ||
+      //           t.walletDestName === this.filterWallet
+
+      //     const matchesCategory =
+      //       this.filterCategory === 'all'
+      //         ? true
+      //         : t.category === this.filterCategory
+
+      //     return (
+      //       matchesDate &&
+      //       matchesSearch &&
+      //       matchesType &&
+      //       matchesWallet &&
+      //       matchesCategory
+      //     )
+      //   })
+
+      //   // STEP 3: Grouping & Hitung Total
+      //   const groups = filtered.reduce((acc: any, item: any) => {
+      //     const dateKey = item.date
+      //     if (!acc[dateKey]) {
+      //       acc[dateKey] = { items: [], totalDaily: 0 }
+      //     }
+      //     acc[dateKey].items.push(item)
+
+      //     const amt = Number(item.amount) || 0
+      //     if (item.type === 'income') acc[dateKey].totalDaily += amt
+      //     else if (item.type === 'expense') acc[dateKey].totalDaily -= amt
+
+      //     return acc
+      //   }, {})
+
+      //   // STEP 4: Sorting Descending
+      //   this.groupedTransactions = Object.keys(groups)
+      //     .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())
+      //     .reduce((obj: any, key) => {
+      //       obj[key] = groups[key]
+      //       return obj
+      //     }, {})
+      // },
+
       loadData() {
         // const allData = storage.getTransactions()
         // const transactions = storage.getTransactions() || []
         const settings = storage.getSettings() as any
         const wallets = settings.wallets || []
-
-        this.categories = settings.categories || []
-        this.wallets = settings.wallets || []
 
         const allRawData = storage.getTransactions() || []
 
@@ -537,6 +633,7 @@ import Filter from '../components/expense/Filter.astro'
 
         // PENTING: Panggil loadDailyData setelah tanggal berubah!
         this.loadDailyData()
+        this.loadData()
       },
 
       applyFilter() {
