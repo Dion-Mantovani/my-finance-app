@@ -6,7 +6,7 @@ const isIncome = type === 'income'
 ---
 
 <div
-  class={` p-6 md:p-8 rounded-4xl border border-slate-100 shadow-xl shadow-slate-100 transition-all group relative overflow-hidden flex flex-col justify-center min-h-25 md:min-h-30 ${isIncome ? 'hover:border-emerald-200 bg-emerald-50' : 'hover:border-rose-200 bg-rose-50'}`}
+  class={` p-6 md:p-8 rounded-4xl border ${isIncome ? 'border-green-200' : 'border-red-200'} shadow-xl shadow-slate-100 transition-all group relative overflow-hidden flex flex-col justify-center min-h-25 md:min-h-30 ${isIncome ? 'hover:border-emerald-200 bg-emerald-50' : 'hover:border-rose-200 bg-rose-50'}`}
 >
   <div
     class={`absolute lg:-bottom-6 lg:-right-6 -bottom-2 -right-2 lg:w-32 lg:h-32 w-20 h-20 flex items-center justify-center rounded-full opacity-[0.2] group-hover:opacity-[0.5] transition-all duration-300 ${isIncome ? 'bg-emerald-200 text-emerald-900' : 'bg-rose-200 text-rose-900'}`}
@@ -18,13 +18,13 @@ const isIncome = type === 'income'
 
   <div class="relative z-10 flex flex-col items-start gap-1">
     <p
-      class="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-wider mb-1 truncate"
+      class="mb-1 truncate text-xs font-bold tracking-wider text-slate-500 capitalize md:text-xs"
     >
       {title} This Month
     </p>
 
     <p
-      class="md:text-xl font-extrabold font-jakarta leading-tight text-[#1D1E20]"
+      class="font-jakarta color-app-text leading-tight font-extrabold md:text-xl"
     >
       <span class="font-jakarta">Rp</span>
       <span class="font-jakarta" x-show="showAmount" x-text={alpineValue}

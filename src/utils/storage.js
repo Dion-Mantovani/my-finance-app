@@ -7,17 +7,27 @@ const KEYS = {
 
 // Data default saat aplikasi pertama kali dijalankan
 const DEFAULT_SETTINGS = {
-  user: { name: 'Dion' },
+  user: { name: 'User' },
   wallets: [],
   categories: [
+    'Salary',
+    'Freelance',
+    'Profit',
+    'Bonus',
     'Food',
     'Transport',
     'Shopping',
+    'Groceries',
+    'Utilities',
+    'Internet',
     'Health',
     'Subscription',
+    'Entertainment',
+    'Education',
+    'SelfCare',
     'Gift',
-    'Salary',
-    'Freelance',
+    'Investment',
+    'Other',
   ],
 }
 

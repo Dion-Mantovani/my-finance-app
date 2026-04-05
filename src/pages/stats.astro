@@ -12,24 +12,24 @@ import SmartInsight from '../components/stats/SmartInsight.astro'
 
     <section class="mb-5">
       <div
-        class="bg-[#1D1E20] p-6 rounded-[3rem] shadow-2xl shadow-slate-300/50 relative"
+        class="relative rounded-4xl bg-[#1D1E20] p-6 shadow-2xl shadow-slate-300/50"
       >
-        <div class="flex justify-between items-center mb-6 px-2">
+        <div class="mb-6 flex items-center justify-between px-2">
           <h3
-            class="text-white text-xs font-bold font-jakarta opacity-80 uppercase tracking-widest"
+            class="font-jakarta text-xs font-bold tracking-widest text-white uppercase opacity-80"
           >
             Cash Flow Projection
           </h3>
           <div class="flex gap-4">
             <div class="flex items-center gap-1.5">
-              <div class="w-2 h-2 rounded-full bg-emerald-400"></div>
-              <span class="text-[9px] text-slate-400 font-bold uppercase"
+              <div class="h-2 w-2 rounded-full bg-emerald-400"></div>
+              <span class="text-[9px] font-bold text-slate-400 uppercase"
                 >In</span
               >
             </div>
             <div class="flex items-center gap-1.5">
-              <div class="w-2 h-2 rounded-full bg-rose-400"></div>
-              <span class="text-[9px] text-slate-400 font-bold uppercase"
+              <div class="h-2 w-2 rounded-full bg-rose-400"></div>
+              <span class="text-[9px] font-bold text-slate-400 uppercase"
                 >Out</span
               >
             </div>
@@ -66,6 +66,7 @@ import SmartInsight from '../components/stats/SmartInsight.astro'
 
   document.addEventListener('alpine:init', () => {
     ;(window as any).statsPage = () => ({
+      showAmount: localStorage.getItem('DION_PRIVACY') !== 'false',
       timeFrame: 'Weekly', // Default tab
       chart: null as ApexCharts | null,
       topCategories: [] as any[],

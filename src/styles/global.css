@@ -1,5 +1,109 @@
 @import 'tailwindcss';
 
-[x-cloak] {
-  display: none !important;
+/* ==========================================================================
+                         FONTS (Local Variable Fonts)
+   ========================================================================== */
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  src: url('/fonts/PlusJakartaSans-VariableFont_wght.woff2')
+    format('woff2-variations');
+  font-weight: 400 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ==========================================================================
+                         THEME CONFIGURATION (Tailwind v4)
+   ========================================================================== */
+@theme {
+  --font-jakarta: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+
+  /* App Design Tokens */
+  --color-app-bg: #fdfdff;
+  --color-app-text: #1d1e20;
+  --color-income: var(--color-emerald-500);
+  --color-expense: var(--color-rose-500);
+
+  /* Component Tokens */
+  --nav-bg: rgba(255, 255, 255, 0.8);
+  --nav-blur: 20px;
+}
+
+/* ==========================================================================
+                 BASE STYLES (Global Reset & Standard Elements)
+   ========================================================================== */
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+    scroll-behavior: smooth;
+    scrollbar-gutter: stable;
+    /* Firefox Scrollbar */
+    scrollbar-color: transparent transparent;
+    transition: scrollbar-color 0.3s ease;
+  }
+
+  html:hover {
+    scrollbar-color: #cbd5e1 transparent;
+  }
+
+  body {
+    font-family: var(--font-jakarta);
+    background-color: var(--color-app-bg);
+    color: var(--color-app-text);
+    @apply min-h-screen overflow-x-hidden;
+  }
+
+  [x-cloak] {
+    display: none !important;
+  }
+}
+
+/* ==========================================================================
+                           COMPONENTS & UTILITIES
+   ========================================================================== */
+@layer components {
+  /* Scrollbar Chrome, Edge, Safari (Webkit) */
+  html::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  html::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  html::-webkit-scrollbar-thumb {
+    background-color: transparent;
+    border-radius: 20px;
+    border: 2px solid transparent;
+  }
+
+  html:hover::-webkit-scrollbar-thumb {
+    background-color: #cbd5e1;
+    border: 2px solid #fdfdff;
+  }
+
+  /* Hide Scrollbar Utilities */
+  .no-scrollbar {
+    -ms-overflow-style: none; /* IE/Edge */
+    scrollbar-width: none; /* Firefox */
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* ================== Letakkan Class Saktimu Disini ================== */
+
+  /* Navigation Blur Effect */
+  .nav-blur {
+    background: var(--nav-bg);
+    backdrop-filter: blur(var(--nav-blur));
+    -webkit-backdrop-filter: blur(var(--nav-blur));
+  }
+
+  /* Varian Warna (The Identity) */
+  .btn-primary {
+    @apply flex items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-6 py-4 text-xs font-bold whitespace-nowrap text-white shadow-lg shadow-indigo-100 transition-all hover:bg-indigo-700 active:scale-95;
+  }
+
+  /* ================= Batas Akhir Class Saktimu Disini ================= */
 }

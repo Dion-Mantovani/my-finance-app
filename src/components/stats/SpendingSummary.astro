@@ -1,48 +1,52 @@
 <section class="mb-5">
   <div
-    class="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden"
+    class="overflow-hidden rounded-4xl border border-slate-100 bg-white shadow-sm"
   >
     <div class="flex divide-x divide-slate-100 border-b border-slate-50">
       <div class="flex-1 p-6">
         <p
-          class="text-[10px] font-black text-emerald-500 uppercase tracking-[0.2em] mb-2"
+          class="mb-2 text-[10px] font-black tracking-[0.2em] text-emerald-500 uppercase"
         >
           Income
         </p>
         <div class="flex items-baseline gap-1">
           <span class="text-xs font-bold text-slate-400">Rp</span>
           <h4
-            class="text-lg font-black text-slate-800 font-jakarta tracking-tight"
+            x-show="showAmount"
+            class="font-jakarta text-lg font-black tracking-tight text-slate-800"
             x-text="Number(summary.totalIncome).toLocaleString('id-ID')"
           >
             0
           </h4>
+          <span class="" x-show="!showAmount" x-cloak>••••••</span>
         </div>
       </div>
 
       <div class="flex-1 p-6">
         <p
-          class="text-[10px] font-black text-rose-500 uppercase tracking-[0.2em] mb-2"
+          class="mb-2 text-[10px] font-black tracking-[0.2em] text-rose-500 uppercase"
         >
           Expense
         </p>
         <div class="flex items-baseline gap-1">
           <span class="text-xs font-bold text-slate-400">Rp</span>
           <h4
-            class="text-lg font-black text-slate-800 font-jakarta tracking-tight"
+            x-show="showAmount"
+            class="font-jakarta text-lg font-black tracking-tight text-slate-800"
             x-text="Number(summary.totalExpense).toLocaleString('id-ID')"
           >
             0
           </h4>
+          <span class="" x-show="!showAmount" x-cloak>••••••</span>
         </div>
       </div>
     </div>
 
-    <div class="p-6 bg-slate-50/50">
-      <div class="flex justify-between items-end mb-3">
+    <div class="bg-slate-50/50 p-6">
+      <div class="mb-3 flex items-end justify-between">
         <div>
           <p
-            class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1"
+            class="mb-1 text-[10px] font-black tracking-[0.2em] text-slate-400 uppercase"
           >
             Saving Rate
           </p>
@@ -51,23 +55,23 @@
           </h5>
         </div>
         <span
-          class="px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider"
+          class="rounded-full px-3 py-1 text-[9px] font-black tracking-wider uppercase"
           :class="summary.savingsRate >= 30 ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'"
           x-text="summary.savingsRate >= 30 ? 'Healthy' : 'Caution'"></span>
       </div>
 
       <div
-        class="relative w-full h-3 bg-slate-200 rounded-full overflow-hidden shadow-inner"
+        class="relative h-3 w-full overflow-hidden rounded-full bg-slate-200 shadow-inner"
       >
         <div
-          class="h-full bg-linear-to-r from-indigo-500 to-indigo-400 rounded-full transition-all duration-1000 ease-out relative"
+          class="relative h-full rounded-full bg-linear-to-r from-indigo-500 to-indigo-400 transition-all duration-1000 ease-out"
           :style="`width: ${summary.savingsRate}%`"
         >
-          <div class="absolute inset-0 bg-white/20 animate-pulse"></div>
+          <div class="absolute inset-0 animate-pulse bg-white/20"></div>
         </div>
       </div>
 
-      <p class="text-[9px] font-medium text-slate-400 mt-3 italic">
+      <p class="mt-3 text-[9px] font-medium text-slate-400 italic">
         *Target ideal saving rate adalah di atas 30%
       </p>
     </div>

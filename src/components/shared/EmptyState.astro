@@ -9,37 +9,31 @@ const {
   link = '#', // Jika type adalah 'link'
   onClick = '', // Jika type adalah 'button' (untuk Alpine.js)
 } = Astro.props
-
-// Class CSS yang sama buat Button dan Link biar visualnya seragam
-const ctaClasses =
-  'flex items-center justify-center gap-2 w-full px-6 py-3 bg-indigo-600 text-white rounded-full text-xs font-bold shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all active:scale-95 whitespace-nowrap'
 ---
 
-<div
-  class="flex flex-col items-center justify-center py-6 px-6 text-center w-full"
->
+<div class="flex w-full flex-col items-center justify-center p-4 text-center">
   <div
-    class="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mb-6"
+    class="mb-4 flex h-24 w-24 items-center justify-center rounded-full bg-slate-100"
   >
     <i class={`fa-solid ${icon} text-3xl text-indigo-400`}></i>
   </div>
 
-  <h3 class="text-xl font-extrabold text-[#1D1E20] font-jakarta mb-2">
+  <h3 class="font-jakarta color-app-text mb-2 text-xl font-extrabold">
     {title}
   </h3>
-  <p class="text-sm text-slate-400 leading-relaxed max-w-70 mx-auto mb-8">
+  <p class="mx-auto mb-8 max-w-70 text-sm leading-relaxed text-slate-400">
     {message}
   </p>
 
   {
     type === 'link' ? (
-      <a href={link} class={ctaClasses}>
-        <i class="fa-solid fa-plus text-[10px]" />
+      <a href={link} class="btn-primary w-full">
+        <i class="fa-solid fa-plus" />
         {buttonText}
       </a>
     ) : (
-      <button @click={onClick} class={ctaClasses}>
-        <i class="fa-solid fa-plus text-[10px]" />
+      <button @click={onClick} class="btn-base btn-primary w-full">
+        <i class="fa-solid fa-plus" />
         {buttonText}
       </button>
     )

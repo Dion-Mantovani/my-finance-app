@@ -6,89 +6,96 @@ import BudgetCard from '../components/wallet/BudgetCard.astro'
 
 <MainLayout title="My Wallets">
   <div class="mx-auto pb-[15vh]" x-data="budgetPage()">
-    <header class="text-center mb-8">
-      <h1 class="text-3xl font-extrabold text-[#1D1E20] font-jakarta">
+    <!-- HEADER -->
+    <header class="mb-6 text-center">
+      <h1 class="font-jakarta text-3xl font-extrabold text-[#1D1E20]">
         My Budgets
       </h1>
-      <p class="text-slate-500 text-sm mt-1 leading-relaxed">
+      <p class="mt-1 text-sm leading-relaxed text-slate-500">
         Set your limits and stay on target.
       </p>
-
-      <div class="flex items-center justify-center gap-6 mt-6">
-        <button
-          @click="prevMonth()"
-          :disabled="isAtLimit()"
-          :class="isAtLimit() ? 'opacity-20 cursor-not-allowed' : 'hover:text-indigo-600 active:scale-90'"
-          class="w-10 h-10 rounded-full bg-white border border-slate-100 shadow-sm flex items-center justify-center text-slate-400 transition-all"
-        >
-          <i class="fa-solid fa-chevron-left text-xs"></i>
-        </button>
-
-        <div class="flex gap-1 items-center justify-center min-w-35">
-          <div
-            class="text-lg font-black text-[#1D1E20] uppercase tracking-tighter"
-            x-text="monthNames[viewMonth]"
-          >
-          </div>
-          <div class="inline-block px-2 py-0.5 bg-slate-100 rounded-md">
-            <span
-              class="text-lg font-black text-indigo-500 uppercase tracking-tighter"
-              x-text="viewYear"
-            >
-            </span>
-          </div>
-        </div>
-
-        <button
-          @click="nextMonth()"
-          :disabled="isCurrentMonth()"
-          :class="isCurrentMonth() ? 'opacity-20 cursor-not-allowed' : 'hover:text-indigo-600 active:scale-90'"
-          class="w-10 h-10 rounded-full bg-white border border-slate-100 shadow-sm flex items-center justify-center text-slate-400 transition-all"
-        >
-          <i class="fa-solid fa-chevron-right text-xs"></i>
-        </button>
-      </div>
     </header>
 
+    <!-- TOGGLE SWITCH -->
+    <section class="mb-8 flex items-center justify-center gap-6">
+      <button
+        @click="prevMonth()"
+        :disabled="isAtLimit()"
+        :class="isAtLimit() ? 'opacity-20 cursor-not-allowed' : 'hover:text-indigo-600 active:scale-90'"
+        class="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-100 bg-white text-slate-400 shadow-sm transition-all"
+      >
+        <i class="fa-solid fa-chevron-left text-xs"></i>
+      </button>
+
+      <div class="flex min-w-35 items-center justify-center gap-1">
+        <div
+          class="text-lg font-black tracking-tighter text-[#1D1E20] uppercase"
+          x-text="monthNames[viewMonth]"
+        >
+        </div>
+        <div class="inline-block rounded-md bg-slate-100 px-2 py-0.5">
+          <span
+            class="text-lg font-black tracking-tighter text-indigo-500 uppercase"
+            x-text="viewYear"
+          >
+          </span>
+        </div>
+      </div>
+
+      <button
+        @click="nextMonth()"
+        :disabled="isCurrentMonth()"
+        :class="isCurrentMonth() ? 'opacity-20 cursor-not-allowed' : 'hover:text-indigo-600 active:scale-90'"
+        class="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-100 bg-white text-slate-400 shadow-sm transition-all"
+      >
+        <i class="fa-solid fa-chevron-right text-xs"></i>
+      </button>
+    </section>
+
+    <!-- MASTER MONTHLY BUDGET -->
     <template x-if="budgets.length !== 0">
       <section
-        class="mb-10 bg-[#1D1E20] rounded-[2.8rem] p-8 text-white shadow-2xl relative overflow-hidden"
+        class="relative mb-10 overflow-hidden rounded-4xl bg-[#1D1E20] p-8 text-white shadow-2xl"
       >
         <div
-          class="absolute top-0 right-0 w-32 h-32 bg-indigo-500/20 blur-3xl rounded-full -mr-10 -mt-10"
+          class="absolute top-0 right-0 -mt-10 -mr-10 h-32 w-32 rounded-full bg-indigo-500/20 blur-3xl"
         >
         </div>
 
         <div class="relative z-10">
-          <div class="flex justify-between items-center">
+          <div class="flex items-center justify-between">
             <p
-              class="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-300"
+              class="text-[10px] font-black tracking-[0.2em] text-indigo-300 uppercase"
             >
               Master Monthly Budget
             </p>
             <template x-if="!isCurrentMonth()">
               <div
-                class="px-3 py-1 bg-indigo-500/70 rounded-full backdrop-blur-md border border-white/30"
+                class="rounded-full border border-white/30 bg-indigo-500/70 px-3 py-1 backdrop-blur-md"
               >
                 <span
-                  class="text-[8px] flex justify-center items-center font-black uppercase tracking-[0.2em] text-white"
+                  class="flex items-center justify-center text-[8px] font-black tracking-[0.2em] text-white uppercase"
                   >Archive</span
                 >
               </div>
             </template>
           </div>
 
-          <div class="flex justify-between items-end mt-2 mb-6">
+          <div class="mt-2 mb-6 flex items-end justify-between">
             <div>
               <h2 class="text-3xl font-black">
                 Rp <span
+                  x-show="showAmount"
                   x-text="Number(budgets.reduce((a, b) => a + (b.used || 0), 0)).toLocaleString('id-ID')"
                 ></span>
+                <span x-show="!showAmount" x-cloak>••••••</span>
               </h2>
               <p class="text-[10px] font-bold text-slate-400">
                 Total Spent of Rp <span
+                  x-show="showAmount"
                   x-text="Number(budgets.reduce((a, b) => a + b.limit, 0)).toLocaleString('id-ID')"
                 ></span>
+                <span x-show="!showAmount" x-cloak>••••••</span>
               </p>
             </div>
             <div class="text-right">
@@ -101,7 +108,7 @@ import BudgetCard from '../components/wallet/BudgetCard.astro'
           </div>
 
           <div
-            class="w-full h-4 bg-white/10 rounded-full overflow-hidden border border-white/5"
+            class="h-4 w-full overflow-hidden rounded-full border border-white/5 bg-white/10"
           >
             <div
               class="h-full bg-linear-to-r from-indigo-500 to-purple-500 transition-all duration-1000"
@@ -113,10 +120,11 @@ import BudgetCard from '../components/wallet/BudgetCard.astro'
       </section>
     </template>
 
+    <!-- BUDGET CARD -->
     <section>
       <div x-cloak class="space-y-6">
         <template x-if="budgets.length > 0">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
             <template x-for="budget in budgets" :key="budget.id">
               <div
                 @click="isCurrentMonth() ? editBudget(budget) : null"
@@ -129,14 +137,14 @@ import BudgetCard from '../components/wallet/BudgetCard.astro'
             <template x-if="isCurrentMonth()">
               <button
                 @click="isEditMode = false; isBudgetModalOpen = true"
-                class="w-full py-12 border-2 border-dashed border-slate-200 rounded-[2.8rem] text-slate-400 flex flex-col items-center justify-center gap-3 hover:border-indigo-300 hover:text-indigo-400 transition-all bg-slate-50/50"
+                class="flex w-full flex-col items-center justify-center gap-3 rounded-4xl border-2 border-dashed border-slate-200 bg-slate-50/50 py-12 text-slate-400 transition-all hover:border-indigo-300 hover:text-indigo-400"
               >
                 <div
-                  class="w-14 h-14 rounded-full bg-white flex items-center justify-center shadow-sm"
+                  class="flex h-14 w-14 items-center justify-center rounded-full bg-white shadow-sm"
                 >
                   <i class="fa-solid fa-plus text-xl"></i>
                 </div>
-                <span class="text-xs font-bold uppercase tracking-widest"
+                <span class="text-xs font-bold tracking-widest uppercase"
                   >Set New Budget</span
                 >
               </button>
@@ -144,7 +152,7 @@ import BudgetCard from '../components/wallet/BudgetCard.astro'
           </div>
         </template>
         <template x-if="budgets.length === 0">
-          <div class="flex flex-col items-center -mt-10">
+          <div class="flex flex-col items-center">
             <EmptyState
               title="No Budgets Set"
               message="You haven't set any monthly limits yet. Start budgeting to keep your expenses in check!"
@@ -154,22 +162,22 @@ import BudgetCard from '../components/wallet/BudgetCard.astro'
             />
 
             <template x-if="getLastAvailableBudget() && isCurrentMonth()">
-              <div class="w-full px-6 mt-2">
-                <div class="flex items-center gap-3 mb-4">
-                  <div class="flex-1 h-px bg-slate-200"></div>
+              <div class="mt-px w-full px-4">
+                <div class="mb-4 flex items-center gap-3">
+                  <div class="h-px flex-1 bg-slate-200"></div>
                   <span
-                    class="text-[10px] font-bold text-slate-400 uppercase tracking-widest"
+                    class="text-[10px] font-bold tracking-widest text-slate-400 uppercase"
                     >Or</span
                   >
-                  <div class="flex-1 h-px bg-slate-200"></div>
+                  <div class="h-px flex-1 bg-slate-200"></div>
                 </div>
 
                 <button
                   @click="copyBudgets()"
-                  class="w-full flex items-center justify-center gap-3 py-3 bg-white border-2 border-dashed border-slate-200 rounded-full text-slate-600 hover:border-indigo-300 hover:text-indigo-600 transition-all group"
+                  class="group flex w-full items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-slate-200 bg-white py-4 text-slate-600 transition-all hover:border-indigo-300 hover:text-indigo-600"
                 >
                   <i
-                    class="fa-solid fa-copy text-sm group-hover:rotate-12 transition-transform"
+                    class="fa-solid fa-copy text-sm transition-transform group-hover:rotate-12"
                   ></i>
                   <span class="text-xs font-bold">
                     Copy from <span x-text="getLastAvailableBudget()?.monthName"
@@ -183,18 +191,19 @@ import BudgetCard from '../components/wallet/BudgetCard.astro'
       </div>
     </section>
 
-    <div
+    <!-- BUDGET MODAL -->
+    <section
       x-show="isBudgetModalOpen"
       x-transition.opacity
-      class="fixed inset-0 bg-[#1D1E20]/60 backdrop-blur-sm z-99 flex items-end sm:items-center justify-center p-4"
+      class="fixed inset-0 z-99 flex items-end justify-center bg-[#1D1E20]/60 p-4 backdrop-blur-sm sm:items-center"
       x-cloak
     >
       <div
         @click.away="closeModal()"
-        class="bg-white w-full max-w-lg rounded-[3rem] p-8 shadow-2xl relative max-h-[90vh] overflow-y-auto no-scrollbar"
+        class="no-scrollbar relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-4xl bg-white p-8 shadow-2xl"
       >
-        <div class="flex justify-between items-center mb-8">
-          <h2 class="text-2xl font-black text-[#1D1E20] font-jakarta">
+        <div class="mb-8 flex items-center justify-between">
+          <h2 class="font-jakarta text-2xl font-black text-[#1D1E20]">
             Set Budget
           </h2>
           <button @click="closeModal()" class="text-slate-400"
@@ -205,12 +214,12 @@ import BudgetCard from '../components/wallet/BudgetCard.astro'
         <div class="space-y-6">
           <div>
             <label
-              class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2 block"
+              class="mb-2 block text-[10px] font-bold tracking-widest text-slate-400 uppercase"
               >Category</label
             >
             <select
               x-model="newBudget.category"
-              class="w-full bg-slate-50 border-none rounded-2xl p-4 font-bold text-[#1D1E20] focus:ring-2 focus:ring-indigo-500"
+              class="w-full rounded-2xl border-none bg-slate-50 p-4 font-bold text-[#1D1E20] focus:ring-2 focus:ring-indigo-500"
             >
               <option value="">Select Category</option>
               <template x-for="cat in categoriesList" :key="cat.id">
@@ -220,27 +229,27 @@ import BudgetCard from '../components/wallet/BudgetCard.astro'
           </div>
           <div>
             <label
-              class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2 block"
+              class="mb-2 block text-[10px] font-bold tracking-widest text-slate-400 uppercase"
               >Monthly Limit</label
             >
             <input
               x-model="newBudget.limit"
               type="number"
-              class="w-full bg-slate-50 border-none rounded-2xl p-4 font-bold focus:ring-2 focus:ring-indigo-500"
+              class="w-full rounded-2xl border-none bg-slate-50 p-4 font-bold focus:ring-2 focus:ring-indigo-500"
               placeholder="Rp 1.000.000"
             />
           </div>
 
           <div class="mt-2 flex justify-center">
             <div
-              class="inline-flex items-center gap-2 px-3 py-1 bg-amber-50 border border-amber-100 rounded-full"
+              class="inline-flex items-center gap-2 rounded-full border border-amber-100 bg-amber-50 px-3 py-1"
             >
-              <i class="fa-solid fa-circle-info text-[10px] text-amber-500"></i>
+              <i class="fa-solid fa-circle-info text-md text-amber-500"></i>
               <span
-                class="text-[9px] font-bold text-amber-600 uppercase tracking-tight"
+                class="text-[9px] font-bold tracking-tight text-amber-600 uppercase"
               >
-                Data budget disimpan maksimal 1 tahun. Lebih dari itu data
-                budget yang sudah tidak relevan akan terhapus otomatis.
+                Data budget disimpan maksimal 1 tahun. Data budget yang sudah
+                tidak relevan akan terhapus otomatis.
               </span>
             </div>
           </div>
@@ -249,7 +258,7 @@ import BudgetCard from '../components/wallet/BudgetCard.astro'
             <template x-if="isEditMode">
               <button
                 @click="deleteBudget"
-                class="flex-1 py-4 rounded-full font-bold text-sm bg-rose-50 text-rose-600 hover:bg-rose-100 transition-all"
+                class="flex-1 rounded-2xl bg-rose-50 py-4 text-sm font-bold text-rose-600 transition-all hover:bg-rose-100"
               >
                 <i class="fa-solid fa-trash-can mr-2"></i> Delete
               </button>
@@ -259,14 +268,15 @@ import BudgetCard from '../components/wallet/BudgetCard.astro'
               @click="saveBudget()"
               :disabled="!isCurrentMonth()"
               :class="!isCurrentMonth() ? 'opacity-50 grayscale cursor-not-allowed' : ''"
-              class="w-full bg-[#1D1E20] text-white py-4 rounded-2xl font-bold uppercase"
+              class="flex-2 rounded-2xl bg-indigo-600 py-4 text-sm font-bold text-white shadow-lg transition-all"
             >
-              <span x-text="isEditMode ? 'Update Budget' : 'Set Budget'"></span>
+              <span x-text="isEditMode ? 'Update Budget' : 'Create Budget'"
+              ></span>
             </button>
           </div>
         </div>
       </div>
-    </div>
+    </section>
   </div>
 </MainLayout>
 

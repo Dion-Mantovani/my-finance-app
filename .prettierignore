@@ -1,0 +1,4 @@
+# ======================= PRETTIER IGNORE =======================
+node_modules/
+dist/
+.astro/

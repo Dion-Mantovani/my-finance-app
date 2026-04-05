@@ -5,23 +5,33 @@ const iconMap = {
   Food: 'fa-utensils',
   Transport: 'fa-car',
   Shopping: 'fa-bag-shopping',
+  Groceries: 'fa-basket-shopping',
+  Utilities: 'fa-bolt',
+  Internet: 'fa-wifi',
   Health: 'fa-heart-pulse',
   Subscription: 'fa-tv',
+  Entertainment: 'fa-clapperboard',
+  Education: 'fa-book-open',
+  SelfCare: 'fa-pump-soap',
   Gift: 'fa-gift',
+  Investment: 'fa-chart-line',
+  Other: 'fa-ellipsis',
   Salary: 'fa-money-bill-trend-up',
   Freelance: 'fa-laptop-code',
   Transfer: 'fa-right-left',
+  Profit: 'fa-coins',
+  Bonus: 'fa-sack-dollar',
 }
 ---
 
 <template x-if="item">
   <a
     :href="`/transactions?edit=${item.id}`"
-    class="flex items-center justify-between p-4 bg-white rounded-3xl border border-slate-100 shadow-sm active:scale-[0.98] active:bg-slate-50 transition-all group mb-3"
+    class="group flex items-center justify-between rounded-2xl border border-slate-100 bg-white p-4 shadow-2xs transition-all active:scale-[0.98] active:bg-slate-50"
   >
     <div class="flex items-center gap-4 text-left">
       <div
-        class="w-11 h-11 rounded-2xl flex items-center justify-center text-sm"
+        class="flex h-11 w-11 items-center justify-center rounded-2xl text-sm"
         :class=`{
           'bg-emerald-50 text-emerald-500': item.type === 'income',
           'bg-rose-50 text-rose-500': item.type === 'expense',
@@ -36,17 +46,17 @@ const iconMap = {
 
       <div class="flex flex-col pr-2">
         <p
-          class="font-bold text-sm text-slate-800 leading-tight line-clamp-1"
+          class="line-clamp-1 text-sm leading-tight font-bold text-slate-800"
           x-text="item.notes || item.category || 'Transaction'"
         >
         </p>
 
         <div
-          class="flex mt-0.5"
+          class="mt-0.5 flex"
           :class="item.type === 'transfer'? 'flex-col justify-center gap-0.5' : 'flex-row items-center gap-1.5'"
         >
           <span
-            class="text-[10px] font-bold text-indigo-500 uppercase tracking-tight"
+            class="text-[10px] font-bold tracking-tight text-indigo-500 uppercase"
             x-text="item.category"></span>
           <span
             class="text-[10px] text-slate-300"
@@ -54,7 +64,7 @@ const iconMap = {
           >
           <div class="flex items-center gap-1">
             <span
-              class="text-[10px] font-medium text-slate-400 uppercase tracking-wide"
+              class="text-[10px] font-medium tracking-wide text-slate-400 uppercase"
               x-text="item.walletSource"></span>
 
             <template x-if="item.type === 'transfer'">
@@ -62,7 +72,7 @@ const iconMap = {
                 <i class="fa-solid fa-arrow-right text-[8px] text-slate-400"
                 ></i>
                 <span
-                  class="text-[10px] font-medium text-slate-400 uppercase tracking-wide"
+                  class="text-[10px] font-medium tracking-wide text-slate-400 uppercase"
                   x-text="item.walletDestName"></span>
               </div>
             </template>
@@ -71,9 +81,9 @@ const iconMap = {
       </div>
     </div>
 
-    <div class="flex flex-col items-end w-28">
+    <div class="flex w-28 flex-col items-end">
       <p
-        class="font-black text-sm"
+        class="text-sm font-black"
         :class=`{
           'text-emerald-500': item.type === 'income',
           'text-rose-500': item.type === 'expense',
@@ -81,10 +91,13 @@ const iconMap = {
         }`
       >
         <span
+          x-show="showAmount"
           x-text="item.type === 'income' ? '+' : (item.type === 'transfer' ? '' : '-')"
         ></span>
-        <span x-text="'Rp ' + Number(item.amount).toLocaleString('id-ID')"
-        ></span>
+        <span
+          x-show="showAmount"
+          x-text="'Rp ' + Number(item.amount).toLocaleString('id-ID')"></span>
+        <span x-show="!showAmount" x-cloak>•••</span>
       </p>
     </div>
   </a>

@@ -9,7 +9,7 @@ import EmptyState from '../components/shared/EmptyState.astro'
 
 <MainLayout title="Add Transaction">
   <main
-    class="mx-auto w-full h-auto bg-white flex flex-col"
+    class="mx-auto flex h-auto w-full flex-col bg-white"
     x-data="transactionForm()"
     x-init="init($nextTick)"
   >
@@ -17,10 +17,10 @@ import EmptyState from '../components/shared/EmptyState.astro'
     <TypeToggle />
     <AmountDisplay />
 
-    <section class="flex-1 bg-slate-50 rounded-t-[2.5rem] px-6 py-2 space-y-4">
+    <section class="flex-1 space-y-4 rounded-t-[2.5rem] bg-slate-50 px-6 py-2">
       <div>
         <label
-          class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1 ml-1"
+          class="mb-1 ml-1 block text-[10px] font-bold tracking-widest text-slate-400 uppercase"
           >Date</label
         >
         <input
@@ -28,7 +28,7 @@ import EmptyState from '../components/shared/EmptyState.astro'
           type="date"
           x-model="date"
           tabindex="-1"
-          class="w-full bg-white border border-slate-100 p-3 rounded-xl text-[12px] font-bold outline-none shadow-sm focus:border-indigo-500"
+          class="w-full rounded-xl border border-slate-100 bg-white p-3 text-[12px] font-bold shadow-sm outline-none focus:border-indigo-500"
         />
       </div>
 
@@ -38,13 +38,13 @@ import EmptyState from '../components/shared/EmptyState.astro'
       >
         <div class="relative">
           <label
-            class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1 ml-1"
+            class="mb-1 ml-1 block text-[10px] font-bold tracking-widest text-slate-400 uppercase"
             >From Wallet</label
           >
           <button
             @click="openWallet = !openWallet"
             type="button"
-            class="w-full bg-white border border-slate-100 p-2.5 rounded-xl text-[12px] font-bold text-slate-600 flex justify-between items-center focus:border-indigo-500 outline-none transition-all shadow-sm"
+            class="flex w-full items-center justify-between rounded-xl border border-slate-100 bg-white p-2.5 text-[12px] font-bold text-slate-600 shadow-sm transition-all outline-none focus:border-indigo-500"
           >
             <span x-text="walletSource || 'Select'"></span>
             <i
@@ -56,13 +56,13 @@ import EmptyState from '../components/shared/EmptyState.astro'
           <div
             x-show="openWallet"
             @click.away="openWallet = false"
-            class="absolute z-50 w-full mt-2 bg-white border border-slate-100 rounded-2xl shadow-xl overflow-hidden"
+            class="absolute z-50 mt-2 w-full overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-xl"
             x-cloak
           >
             <template x-for="w in wallets" :key="w.id">
               <div
                 @click="walletSourceId = w.id; walletSource = w.name; openWallet = false"
-                class="p-3 text-[12px] font-bold text-slate-600 hover:bg-slate-50 cursor-pointer border-b border-slate-50 last:border-none"
+                class="cursor-pointer border-b border-slate-50 p-3 text-[12px] font-bold text-slate-600 last:border-none hover:bg-slate-50"
               >
                 <span x-text="w.name"></span>
               </div>
@@ -71,13 +71,13 @@ import EmptyState from '../components/shared/EmptyState.astro'
         </div>
         <div class="relative" x-show="type === 'transfer'" x-cloak>
           <label
-            class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1 ml-1"
+            class="mb-1 ml-1 block text-[10px] font-bold tracking-widest text-slate-400 uppercase"
             >To Wallet</label
           >
           <button
             @click="openDest = !openDest"
             type="button"
-            class="w-full bg-white border border-slate-100 p-2.5 rounded-xl text-[12px] font-bold text-slate-600 flex justify-between items-center focus:border-indigo-500 outline-none transition-all shadow-sm"
+            class="flex w-full items-center justify-between rounded-xl border border-slate-100 bg-white p-2.5 text-[12px] font-bold text-slate-600 shadow-sm transition-all outline-none focus:border-indigo-500"
           >
             <span x-text="walletDest || 'Select'"></span>
             <i
@@ -89,17 +89,17 @@ import EmptyState from '../components/shared/EmptyState.astro'
           <div
             x-show="openDest"
             @click.away="openDest = false"
-            class="absolute z-50 w-full mt-2 bg-white border border-slate-100 rounded-2xl shadow-xl overflow-hidden"
+            class="absolute z-50 mt-2 w-full overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-xl"
           >
             <template x-for="w in wallets" :key="w.id">
               <div
                 @click="walletDestId = w.id; walletDest = w.name; openDest = false"
-                class="p-3 text-[12px] font-bold text-slate-600 hover:bg-slate-50 cursor-pointer border-b border-slate-50 last:border-none flex items-center justify-between"
+                class="flex cursor-pointer items-center justify-between border-b border-slate-50 p-3 text-[12px] font-bold text-slate-600 last:border-none hover:bg-slate-50"
                 :class="w.id === walletSourceId ? 'opacity-30 pointer-events-none bg-slate-50' : ''"
               >
                 <span x-text="w.name"></span>
                 <template x-if="w.id === walletSourceId">
-                  <span class="text-[8px] uppercase text-slate-400"
+                  <span class="text-[8px] text-slate-400 uppercase"
                     >Same Wallet</span
                   >
                 </template>
@@ -111,7 +111,7 @@ import EmptyState from '../components/shared/EmptyState.astro'
 
       <div>
         <label
-          class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1 ml-1"
+          class="mb-1 ml-1 block text-[10px] font-bold tracking-widest text-slate-400 uppercase"
           >Notes</label
         >
         <input
@@ -122,7 +122,7 @@ import EmptyState from '../components/shared/EmptyState.astro'
           @keydown.enter.prevent="saveRecord()"
           type="text"
           placeholder="Beli bensin..."
-          class="w-full bg-white border border-slate-100 p-3 rounded-xl text-[12px] font-bold outline-none shadow-sm focus:border-indigo-500"
+          class="w-full rounded-xl border border-slate-100 bg-white p-3 text-[12px] font-bold shadow-sm outline-none focus:border-indigo-500"
         />
       </div>
 
@@ -137,11 +137,11 @@ import EmptyState from '../components/shared/EmptyState.astro'
         xRef="catBtn"
       />
 
-      <div class="space-y-3 flex gap-3 mt-5">
+      <div class="mt-5 flex gap-3 space-y-3">
         <button
           @click="saveRecord()"
           type="button"
-          class="order-2 w-full h-12 bg-indigo-600 text-white rounded-2xl font-bold text-sm shadow-lg shadow-indigo-100 active:scale-[0.98] transition-all"
+          class="order-2 h-12 w-full rounded-2xl bg-indigo-600 text-sm font-bold text-white shadow-lg shadow-indigo-100 transition-all active:scale-[0.98]"
         >
           <span x-text="isEditMode ? 'Update Transaction' : 'Save Transaction'"
           ></span>
@@ -151,20 +151,13 @@ import EmptyState from '../components/shared/EmptyState.astro'
           <button
             @click="confirmDelete()"
             type="button"
-            class="order-1 w-full h-12 rounded-2xl bg-rose-50 text-rose-500 font-bold text-xs flex items-center justify-center gap-2 active:bg-rose-100 transition-all border border-rose-100"
+            class="order-1 flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-rose-100 bg-rose-50 text-xs font-bold text-rose-500 transition-all active:bg-rose-100"
           >
             <i class="fa-solid fa-trash-can text-sm"></i>
             <span>Delete Transaction</span>
           </button>
         </template>
       </div>
-
-      <!-- <button
-        @click="saveRecord"
-        class="w-full py-4 bg-[#1D1E20] text-white rounded-2xl font-extrabold text-[11px] uppercase tracking-[0.3em] shadow-xl active:scale-95 transition-all outline-none"
-      >
-        Save Transaction
-      </button> -->
     </section>
 
     <div
@@ -177,9 +170,9 @@ import EmptyState from '../components/shared/EmptyState.astro'
         @click="showWalletModal = false"
       >
       </div>
-      <div class="relative bg-white w-full rounded-t-[3rem] p-8 shadow-2xl">
+      <div class="relative w-full rounded-t-[3rem] bg-white p-8 shadow-2xl">
         <h3
-          class="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-500 mb-6 text-center"
+          class="mb-6 text-center text-[10px] font-black tracking-[0.2em] text-indigo-500 uppercase"
           x-text="modalStep === 'source' ? 'Pilih Rekening Asal' : 'Pilih Rekening Tujuan'"
         >
         </h3>
@@ -191,7 +184,7 @@ import EmptyState from '../components/shared/EmptyState.astro'
                 @click="selectWalletInitial(w, { $nextTick, $refs })"
                 :disabled="modalStep === 'dest' && w.name === walletSource"
                 :class="modalStep === 'dest' && w.name === walletSource ? 'opacity-30' : 'hover:bg-indigo-50'"
-                class="flex items-center justify-between p-5 rounded-2xl border border-slate-100 transition-all"
+                class="flex items-center justify-between rounded-2xl border border-slate-100 p-5 transition-all"
               >
                 <span class="font-bold text-slate-700" x-text="w.name"></span>
                 <i class="fa-solid fa-chevron-right text-[10px] text-slate-300"

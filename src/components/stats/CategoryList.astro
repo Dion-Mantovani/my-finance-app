@@ -4,9 +4,9 @@
 
 <section class="mb-10" x-data="{ showAll: false }">
   <div class="mb-6">
-    <h3 class="text-[#1D1E20] text-xl font-black font-jakarta">Top Spending</h3>
+    <h3 class="font-jakarta text-xl font-black text-[#1D1E20]">Top Spending</h3>
     <p
-      class="text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-1"
+      class="mt-1 text-[10px] font-bold tracking-widest text-slate-400 uppercase"
     >
       Based on category share
     </p>
@@ -21,19 +21,19 @@
         x-transition:enter-start="opacity-0 transform -translate-y-2"
         x-transition:enter-end="opacity-100 transform translate-y-0"
       >
-        <div class="flex justify-between items-center mb-3">
+        <div class="mb-3 flex items-center justify-between">
           <div class="flex items-center gap-4">
             <div
-              class="w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-sm transition-transform group-hover:scale-105"
+              class="flex h-12 w-12 items-center justify-center rounded-2xl text-white shadow-sm transition-transform group-hover:scale-105"
               :class="cat.color"
             >
               <i class="fa-solid" :class="cat.icon"></i>
             </div>
 
             <div>
-              <h4 class="font-black text-[#1D1E20] text-sm" x-text="cat.name">
+              <h4 class="text-sm font-black text-[#1D1E20]" x-text="cat.name">
               </h4>
-              <div class="flex items-center gap-1.5 mt-0.5">
+              <div class="mt-0.5 flex items-center gap-1.5">
                 <i
                   class="fa-solid text-[10px]"
                   x-show="cat.trendText !== 'Baru bulan ini'"
@@ -54,21 +54,25 @@
 
           <div class="text-right">
             <p
-              class="font-black text-[#1D1E20] text-sm"
+              x-show="showAmount"
+              class="text-sm font-black text-[#1D1E20]"
               x-text="'Rp ' + Number(cat.amount).toLocaleString('id-ID')"
             >
             </p>
+            <span class="font-jakarta" x-show="!showAmount" x-cloak>••••••</span
+            >
+
             <p
-              class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5"
+              class="mt-0.5 text-[9px] font-bold tracking-widest text-slate-400 uppercase"
               x-text="Math.round(cat.percentage) + '% of total'"
             >
             </p>
           </div>
         </div>
 
-        <div class="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+        <div class="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
           <div
-            class="h-full transition-all duration-1000 ease-out rounded-full"
+            class="h-full rounded-full transition-all duration-1000 ease-out"
             :class="cat.color"
             :style="`width: ${cat.percentage}%`"
           >
@@ -79,10 +83,10 @@
 
     <div
       x-show="topCategories.length === 0"
-      class="py-10 text-center border-2 border-dashed border-slate-100 rounded-[2.5rem]"
+      class="rounded-[2.5rem] border-2 border-dashed border-slate-100 py-10 text-center"
     >
       <p
-        class="text-slate-400 text-[10px] font-black uppercase tracking-widest"
+        class="text-[10px] font-black tracking-widest text-slate-400 uppercase"
       >
         Belum ada data pengeluaran
       </p>
@@ -93,10 +97,10 @@
     <button
       @click="showAll = !showAll"
       type="button"
-      class="group flex items-center gap-3 px-8 py-3.5 rounded-full bg-slate-50 hover:bg-indigo-50 transition-all active:scale-95 border border-slate-100"
+      class="group flex items-center gap-3 rounded-full border border-slate-100 bg-slate-50 px-8 py-3.5 transition-all hover:bg-indigo-50 active:scale-95"
     >
       <span
-        class="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em]"
+        class="text-[10px] font-black tracking-[0.2em] text-indigo-600 uppercase"
         x-text="showAll ? 'Sembunyikan' : 'Lihat Semua Kategori'"></span>
       <i
         class="fa-solid text-[10px] text-indigo-600 transition-transform duration-300"
