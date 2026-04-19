@@ -25,9 +25,9 @@ const shouldShowNavigation = !hideNavigationPaths.includes(currentPath)
   </head>
   <body
     class="color-app-bg color-app-text font-jakarta min-h-screen overflow-x-hidden"
-    x-data="{ showAmount: localStorage.getItem('showAmount') !== 'false' }"
-    x-init="$watch('showAmount', value => localStorage.setItem('showAmount', value))"
   >
+    <!-- x-data="{ showAmount: localStorage.getItem('showAmount') !== 'false' }"
+    x-init="$watch('showAmount', value => localStorage.setItem('showAmount', value))" -->
     <div class="flex">
       {shouldShowNavigation && <Navigation name="Dion Mantovani" />}
       <div class="flex-1">
@@ -98,21 +98,27 @@ const shouldShowNavigation = !hideNavigationPaths.includes(currentPath)
 <script>
   import { storage } from '../utils/storage'
 
-  // Kasih tau TS kalau Alpine itu ada di window
   const Alpine = (window as any).Alpine
 
   document.addEventListener('alpine:init', () => {
     Alpine.store('app', {
       user: storage.getSettings().user || { name: 'User' },
+      showAmount: storage.getPrivacy(),
 
       updateUserName(newName: string) {
         const name = newName.trim() || 'User'
         const settings = storage.getSettings()
         settings.user = { name }
-        storage.saveSettings(settings)
+        storage.setSettings(settings)
         this.user.name = name
 
         // Dispatch event biar tab lain tau (optional)
+        window.dispatchEvent(new Event('storage'))
+      },
+
+      togglePrivacy() {
+        this.showAmount = !this.showAmount
+        storage.setPrivacy(this.showAmount)
         window.dispatchEvent(new Event('storage'))
       },
     })

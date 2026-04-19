@@ -1,18 +1,19 @@
-// src/utils/storage.js
+/**
+ * STORAGE JS (Standard)
+ * Pondasi utama untuk manajemen localStorage.
+ */
 
-const KEYS = {
-  TRANSACTIONS: 'DION_TRANSACTIONS',
-  SETTINGS: 'DION_SETTINGS',
-}
-
-// Data default saat aplikasi pertama kali dijalankan
+// 1. CONSTANTS (Keys)
+const SETTINGS_KEY = 'DION_SETTINGS'
+const TRANSACTIONS_KEY = 'DION_TRANSACTIONS'
+const PRIVACY_KEY = 'DION_PRIVACY'
 const DEFAULT_SETTINGS = {
   user: { name: 'User' },
   wallets: [],
+  budgets: [],
   categories: [
     'Salary',
     'Freelance',
-    'Profit',
     'Bonus',
     'Food',
     'Transport',
@@ -24,97 +25,172 @@ const DEFAULT_SETTINGS = {
     'Subscription',
     'Entertainment',
     'Education',
-    'SelfCare',
+    'Self-Care',
     'Gift',
     'Investment',
     'Other',
   ],
 }
 
+// 2. CORE ENGINE (Internal Helpers) - Urusan JSON & Try-Catch di sini
+const _fetch = (key) => {
+  try {
+    const data = localStorage.getItem(key)
+    return data ? JSON.parse(data) : null
+  } catch (e) {
+    console.error(`Error fetching ${key}:`, e)
+    return null
+  }
+}
+
+const _store = (key, data) => {
+  try {
+    localStorage.setItem(key, JSON.stringify(data))
+  } catch (e) {
+    console.error(`Error storing ${key}:`, e)
+  }
+}
+
 export const storage = {
-  // --- 1. SETTINGS HANDLER (User, Wallets, Categories) ---
+  //  ---------------- 3. SETTINGS ACTIONS (Get & Set) ----------------
   getSettings() {
-    if (typeof window === 'undefined') return DEFAULT_SETTINGS
-    const data = localStorage.getItem(KEYS.SETTINGS)
-    return data ? JSON.parse(data) : DEFAULT_SETTINGS
-  },
+    let settings = _fetch(SETTINGS_KEY) || DEFAULT_SETTINGS
 
-  saveSettings(newSettings) {
-    localStorage.setItem(KEYS.SETTINGS, JSON.stringify(newSettings))
-  },
+    if (settings.categories && settings.categories.includes('SelfCare')) {
+      // A. Bersih-bersih di level Settings dulu
+      settings.categories = settings.categories.map((c) =>
+        c === 'SelfCare' ? 'Self-Care' : c,
+      )
+      this.setSettings(settings)
 
-  // --- 2. TRANSACTIONS HANDLER ---
-  getTransactions() {
-    if (typeof window === 'undefined') return []
-    const data = localStorage.getItem(KEYS.TRANSACTIONS)
-    return data ? JSON.parse(data) : []
-  },
-
-  addTransaction(record) {
-    const all = this.getTransactions()
-
-    // Pastikan data bersih & ID unik
-    const newRecord = {
-      ...record,
-      id: Date.now(),
-      amount: Number(record.amount) || 0, // Force ke Number
-      createdAt: new Date().toISOString(),
+      // A. Bersih-bersih di level Transactions
+      this._migrateTransactionCategories('SelfCare', 'Self-Care')
     }
 
-    all.unshift(newRecord) // Tambah ke paling atas (terbaru)
-    localStorage.setItem(KEYS.TRANSACTIONS, JSON.stringify(all))
-    return newRecord
+    return settings
+  },
+  setSettings(data) {
+    _store(SETTINGS_KEY, data)
   },
 
-  deleteTransaction(id) {
-    const all = this.getTransactions().filter((t) => t.id !== id)
-    localStorage.setItem(KEYS.TRANSACTIONS, JSON.stringify(all))
+  // 4. -------------- TRANSACTIONS ACTIONS (Get & Set) --------------
+  getTransactions() {
+    return _fetch(TRANSACTIONS_KEY) || []
+  },
+  setTransactions(data) {
+    _store(TRANSACTIONS_KEY, data)
   },
 
-  // --- 3. AUTO BALANCE & ASSET CALCULATION ---
-  // src/utils/storage.js
+  // ---------------- 5. PRIVACY ACTIONS (Get & Set) ----------------
+  getPrivacy() {
+    return _fetch(PRIVACY_KEY) || true
+  },
+  setPrivacy(value) {
+    _store(PRIVACY_KEY, value)
+  },
 
-  getBalances() {
+  // ---------------------------- HELPER ----------------------------
+  _migrateTransactionCategories(oldCat, newCat) {
     const transactions = this.getTransactions()
-    const settings = this.getSettings()
 
-    let balances = {}
-    const wallets = settings.wallets || []
+    // Cek dulu, ada nggak transaksi yang pake kategori lama?
+    const hasOldData = transactions.some((t) => t.category === oldCat)
 
-    // 1. Inisialisasi saldo awal pake ID sebagai kunci
-    wallets.forEach((w) => {
-      balances[w.id] = Number(w.balance) || 0
-    })
+    if (hasOldData) {
+      console.log(`Migrating Transactions: ${oldCat} -> ${newCat}`)
 
-    // 2. Hitung semua transaksi berdasarkan walletId
-    transactions.forEach((t) => {
-      const amt = Number(t.amount)
+      const updated = transactions.map((t) => ({
+        ...t,
+        category: t.category === oldCat ? newCat : t.category,
+      }))
 
-      if (t.type === 'income') {
-        if (balances.hasOwnProperty(t.walletId)) balances[t.walletId] += amt
-      } else if (t.type === 'expense') {
-        if (balances.hasOwnProperty(t.walletId)) balances[t.walletId] -= amt
-      } else if (t.type === 'transfer') {
-        // Transfer ngurangin sumber, nambah tujuan (pake ID)
-        if (balances.hasOwnProperty(t.walletId)) balances[t.walletId] -= amt
-        if (balances.hasOwnProperty(t.walletIdDest))
-          balances[t.walletIdDest] += amt
+      this.setTransactions(updated)
+    }
+  },
+
+  // ---------------------- LOGIC UTILITIES ----------------------
+  getBalances(wallets = [], transactions = []) {
+    const balances = wallets.reduce(
+      (acc, wallet) => ({
+        ...acc,
+        [wallet.id]: Number(wallet.balance) || 0,
+      }),
+      {},
+    )
+
+    transactions.forEach(({ type, amount, walletId, walletIdDest }) => {
+      const amt = Number(amount) || 0
+      if (type === 'income') balances[walletId] += amt
+      if (type === 'expense') balances[walletId] -= amt
+      if (type === 'transfer') {
+        balances[walletId] -= amt
+        if (walletIdDest) balances[walletIdDest] += amt
       }
     })
 
     return {
-      byWallet: balances, // Isinya sekarang { "w1": 50000, "w-123": 10000 }
-      totalAsset: Object.values(balances).reduce((a, b) => a + b, 0),
+      byWallet: balances,
+      totalAsset: Object.values(balances).reduce((sum, val) => sum + val, 0),
     }
   },
 
-  getPrivacy() {
-    if (typeof window === 'undefined') return true
-    const privacy = localStorage.getItem('DION_PRIVACY')
-    return privacy !== null ? JSON.parse(privacy) : true
+  getGreeting() {
+    const hour = new Date().getHours()
+    if (hour < 11) return { title: 'Good Morning', icon: '☀️' }
+    if (hour < 15) return { title: 'Good Afternoon', icon: '🌤️' }
+    if (hour < 19) return { title: 'Good Evening', icon: '🌅' }
+    return { title: 'Good Night', icon: '🌙' }
+  },
+  // ---------------------- STYLE UTILITIES ----------------------
+
+  formatCurrency(num) {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0,
+    }).format(num || 0)
   },
 
-  setPrivacy(value) {
-    localStorage.setItem('DION_PRIVACY', JSON.stringify(value))
+  formatDateTitle(dateStr) {
+    if (!dateStr) return ''
+
+    const d = new Date(dateStr)
+    const now = new Date()
+
+    const todayStr = now.toISOString().split('T')[0]
+
+    const dateFormatted = d.toLocaleDateString('id-ID', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    })
+    const dayName = d.toLocaleDateString('id-ID', { weekday: 'long' })
+
+    const label = dateStr === todayStr ? ' (Hari ini)' : ''
+
+    return `${dayName}${label}, ${dateFormatted}`
+  },
+
+  getCategoryIcon(categoryName) {
+    const icons = {
+      Food: 'fa-utensils',
+      Transport: 'fa-car',
+      Shopping: 'fa-bag-shopping',
+      Groceries: 'fa-basket-shopping',
+      Utilities: 'fa-bolt',
+      Internet: 'fa-wifi',
+      Health: 'fa-heart-pulse',
+      Subscription: 'fa-credit-card',
+      Entertainment: 'fa-clapperboard',
+      Education: 'fa-book-open',
+      'Self-Care': 'fa-pump-soap',
+      Gift: 'fa-gift',
+      Investment: 'fa-chart-line',
+      Bonus: 'fa-sack-dollar',
+      Salary: 'fa-wallet',
+      Freelance: 'fa-laptop-code',
+      Other: 'fa-ellipsis',
+    }
+    return icons[categoryName] || 'fa-wallet'
   },
 }

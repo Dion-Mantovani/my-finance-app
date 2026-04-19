@@ -9,18 +9,16 @@ const iconMap = {
   Utilities: 'fa-bolt',
   Internet: 'fa-wifi',
   Health: 'fa-heart-pulse',
-  Subscription: 'fa-tv',
+  Subscription: 'fa-credit-card',
   Entertainment: 'fa-clapperboard',
   Education: 'fa-book-open',
-  SelfCare: 'fa-pump-soap',
+  'Self-Care': 'fa-pump-soap',
   Gift: 'fa-gift',
   Investment: 'fa-chart-line',
-  Other: 'fa-ellipsis',
-  Salary: 'fa-money-bill-trend-up',
-  Freelance: 'fa-laptop-code',
-  Transfer: 'fa-right-left',
-  Profit: 'fa-coins',
   Bonus: 'fa-sack-dollar',
+  Salary: 'fa-wallet',
+  Freelance: 'fa-laptop-code',
+  Other: 'fa-ellipsis',
 }
 ---
 
@@ -91,13 +89,13 @@ const iconMap = {
         }`
       >
         <span
-          x-show="showAmount"
+          x-show="$store.app.showAmount"
           x-text="item.type === 'income' ? '+' : (item.type === 'transfer' ? '' : '-')"
         ></span>
         <span
-          x-show="showAmount"
+          x-show="$store.app.showAmount"
           x-text="'Rp ' + Number(item.amount).toLocaleString('id-ID')"></span>
-        <span x-show="!showAmount" x-cloak>•••</span>
+        <span x-show="!$store.app.showAmount" x-cloak>RP •••</span>
       </p>
     </div>
   </a>

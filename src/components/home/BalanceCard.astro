@@ -24,12 +24,12 @@ const { lastUpdated = '1m ago' } = Astro.props
       </div>
 
       <button
-        @click="togglePrivacy()"
+        @click="$store.app.togglePrivacy()"
         class="rounded-full p-2 transition-colors hover:bg-slate-100"
       >
         <i
           class="fa-solid text-slate-400"
-          :class="showAmount ? 'fa-eye' : 'fa-eye-slash'"></i>
+          :class="$store.app.showAmount ? 'fa-eye' : 'fa-eye-slash'"></i>
       </button>
     </div>
 
@@ -39,9 +39,12 @@ const { lastUpdated = '1m ago' } = Astro.props
       <div>
         <h2 class="text-3xl font-extrabold tracking-tight lg:text-4xl">
           Rp
-          <span class="font-jakarta" x-show="showAmount" x-text="totalAsset"
-          ></span>
-          <span class="font-jakarta" x-show="!showAmount" x-cloak>••••••••</span
+          <span
+            class="font-jakarta"
+            x-show="$store.app.showAmount"
+            x-text="totalAsset"></span>
+          <span class="font-jakarta" x-show="!$store.app.showAmount" x-cloak
+            >••••••••</span
           >
         </h2>
         <p class="mt-2 text-xs font-medium text-indigo-300">

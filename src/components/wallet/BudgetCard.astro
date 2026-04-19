@@ -15,10 +15,10 @@
     </div>
     <div class="text-right">
       <span
-        x-show="showAmount"
+        x-show="$store.app.showAmount"
         class="text-xs font-black text-[#1D1E20]"
         x-text="'Rp ' + Number(budget.limit).toLocaleString('id-ID')"></span>
-      <span x-show="!showAmount" x-cloak>••••••</span>
+      <span x-show="!$store.app.showAmount" x-cloak>••••••</span>
     </div>
   </div>
 
@@ -28,10 +28,10 @@
     >
       <span class="text-slate-400"
         >Spent: <span
-          x-show="showAmount"
+          x-show="$store.app.showAmount"
           :class="budget.percentage > 90 ? 'text-rose-500' : 'text-slate-600'"
           x-text="'Rp ' + Number(budget.used).toLocaleString('id-ID')"></span>
-        <span x-show="!showAmount" x-cloak>••••••</span>
+        <span x-show="!$store.app.showAmount" x-cloak>••••••</span>
       </span>
       <span
         :class=`{
@@ -60,11 +60,11 @@
       x-show="!budget.isOver"
     >
       You have <span
-        x-show="showAmount"
+        x-show="$store.app.showAmount"
         class="font-bold text-emerald-600"
         x-text="'Rp ' + Number(budget.remaining).toLocaleString('id-ID')"
       ></span>
-      <span x-show="!showAmount" x-cloak>••••••</span>
+      <span x-show="!$store.app.showAmount" x-cloak>••••••</span>
       left for this month.
     </p>
     <p class="text-[9px] font-bold text-rose-600 italic" x-show="budget.isOver">

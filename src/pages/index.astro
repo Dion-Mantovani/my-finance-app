@@ -5,8 +5,6 @@ import BalanceCard from '../components/home/BalanceCard.astro'
 import StatCard from '../components/home/StatCard.astro'
 import TransactionItem from '../components/shared/TransactionItem.astro'
 import EmptyState from '../components/shared/EmptyState.astro'
-
-// Kita biarkan transactions kosong di server, nanti diisi via Alpine di client
 ---
 
 <MainLayout title="Overview">
@@ -97,7 +95,7 @@ import EmptyState from '../components/shared/EmptyState.astro'
                     >
                       <i
                         class="fa-solid text-sm"
-                        :class="getCategoryIcon(budget.category)"></i>
+                        :class="storage.getCategoryIcon(budget.category)"></i>
                     </div>
                     <div>
                       <h4
@@ -119,10 +117,16 @@ import EmptyState from '../components/shared/EmptyState.astro'
                       Remaining
                     </p>
                     <p
+                      x-show="$store.app.showAmount"
                       class="text-sm font-black text-slate-700"
-                      x-text="'Rp ' + budget.remaining.toLocaleString('id-ID')"
+                      x-text="'Rp ' + budget.remaining"
                     >
                     </p>
+                    <span
+                      x-show="!$store.app.showAmount"
+                      class="text-sm font-black text-slate-700"
+                      x-cloak>RP •••</span
+                    >
                   </div>
                 </div>
 
@@ -184,213 +188,11 @@ import EmptyState from '../components/shared/EmptyState.astro'
 </MainLayout>
 
 <script>
-  import { storage } from '../utils/storage'
+  import Alpine from 'alpinejs'
+  import { homeDashboard } from '../logic/home'
 
+  // Daftarkan ke Alpine
   document.addEventListener('alpine:init', () => {
-    ;(window as any).homeDashboard = () => ({
-      transactions: [],
-      totalAsset: '0',
-      monthlyIncome: '0',
-      monthlyExpense: '0',
-      showAmount: storage.getPrivacy(), // Ambil status awal
-      dailyExpense: '0',
-      criticalBudgets: [],
-
-      init() {
-        // CEK & INITIALIZE SETTINGS JIKA KOSONG
-        const currentSettings = localStorage.getItem('DION_SETTINGS')
-        if (!currentSettings) {
-          // Panggil getSettings sekali untuk memicu DEFAULT_SETTINGS
-          const defaults = storage.getSettings()
-          storage.saveSettings(defaults)
-          console.log('Settings initialized with defaults')
-        }
-
-        this.refreshData()
-
-        // Listener agar data update otomatis jika ada perubahan di storage (dari tab lain)
-        window.addEventListener('storage', (e) => {
-          if (e.key === 'DION_PRIVACY') {
-            this.showAmount = storage.getPrivacy()
-          }
-          this.refreshData()
-        })
-      },
-
-      getGreeting() {
-        const hour = new Date().getHours()
-        if (hour < 11) return { title: 'Hello, Good Morning', icon: '☀️' }
-        if (hour < 15) return { title: 'Hello, Good Afternoon', icon: '🌤️' }
-        if (hour < 19) return { title: 'Hello, Good Evening', icon: '🌆' }
-        return { title: 'Good Night', icon: '🌙' }
-      },
-
-      togglePrivacy() {
-        const newState = !this.showAmount
-        this.showAmount = newState
-        storage.setPrivacy(newState)
-        // Trigger event agar tab/halaman lain tau
-        window.dispatchEvent(new Event('storage'))
-      },
-
-      refreshData() {
-        const allTrans = storage.getTransactions()
-        const balances = storage.getBalances()
-        const transactions = storage.getTransactions() || []
-        const settings = storage.getSettings() || {}
-        const wallets = settings.wallets || []
-        const budgets = settings.budgets || []
-        const today = new Date()
-        today.setHours(0, 0, 0, 0)
-
-        this.transactions = transactions.map((item: any) => {
-          // Cari nama wallet asal berdasarkan ID
-          const source = wallets.find((w: any) => w.id === item.walletId)
-
-          // Cari nama wallet tujuan (kalau tipenya transfer)
-          const dest = item.walletIdDest
-            ? wallets.find((w: any) => w.id === item.walletIdDest)
-            : null
-
-          return {
-            ...item,
-            // Kita "suntik" properti walletSource agar komponen gak perlu berubah
-            walletSource: source ? source.name : 'Unknown Wallet',
-            walletDestName: dest ? dest.name : '',
-          }
-        })
-
-        // Daily Insight
-        this.totalAsset = balances.totalAsset.toLocaleString('id-ID')
-
-        const expenseToday = allTrans
-          .filter((t: any) => {
-            const transDate = new Date(t.date)
-            transDate.setHours(0, 0, 0, 0)
-            return (
-              t.type === 'expense' && transDate.getTime() === today.getTime()
-            )
-          })
-          .reduce((sum: any, t: any) => sum + Number(t.amount), 0)
-
-        this.dailyExpense =
-          expenseToday === 0 ? '0' : expenseToday.toLocaleString('id-ID')
-
-        // Hitung income & expense bulan ini sederhana
-        const now = new Date()
-        const thisMonth = allTrans.filter((t: any) => {
-          const d = new Date(t.date)
-          return (
-            d.getMonth() === now.getMonth() &&
-            d.getFullYear() === now.getFullYear()
-          )
-        })
-
-        const income = thisMonth
-          .filter((t: any) => t.type === 'income')
-          .reduce((sum: any, t: any) => sum + Number(t.amount), 0)
-
-        const expense = thisMonth
-          .filter((t: any) => t.type === 'expense')
-          .reduce((sum: any, t: any) => sum + Number(t.amount), 0)
-
-        this.monthlyIncome = income.toLocaleString('id-ID')
-        this.monthlyExpense = expense.toLocaleString('id-ID')
-
-        // LOGIC BUDGET ALERT
-        this.criticalBudgets = budgets
-          // 1. Filter bulan & tahun ini [cite: 33, 41]
-          .filter(
-            (b: any) =>
-              b.month === now.getMonth() && b.year === now.getFullYear()
-          )
-          .map((b: any) => {
-            const used = allTrans
-              .filter(
-                (t: any) =>
-                  t.type === 'expense' &&
-                  t.category === b.category &&
-                  new Date(t.date).getMonth() === now.getMonth()
-              )
-              .reduce((sum: number, t: any) => sum + Number(t.amount), 0)
-
-            return {
-              ...b,
-              used,
-              percentage: (used / b.limit) * 100,
-              remaining: b.limit - used,
-            }
-          })
-          // 2. Hanya yang di atas 90%
-          .filter((b: any) => b.percentage >= 90)
-          // 3. Urutkan dari yang paling kritis (persentase tertinggi)
-          .sort((a: any, b: any) => b.percentage - a.percentage)
-          // 4. Ambil maksimal 2 data
-          .slice(0, 2)
-      },
-
-      // Di dalam homeDashboard index.astro
-      getDailyInsight() {
-        // 1. Cari budget paling kritis (di atas 80%) [cite: 36, 60]
-        const settings = storage.getSettings() || {}
-        const budgets = settings.budgets || []
-
-        // Logic refreshBudget versi mini untuk dapetin percentage tiap budget [cite: 31-37]
-        const criticalBudget = budgets
-          .map((b: any) => {
-            const used = storage
-              .getTransactions()
-              .filter(
-                (t: any) => t.type === 'expense' && t.category === b.category
-              )
-              .reduce((sum: any, t: any) => sum + Number(t.amount), 0)
-            return { ...b, percentage: (used / b.limit) * 100 }
-          })
-          .find((b: any) => b.percentage >= 80)
-
-        if (criticalBudget) {
-          return {
-            type: 'warning',
-            icon: 'fa-triangle-exclamation',
-            label: 'Attention Needed',
-            message: `Your <span class="text-rose-600">${criticalBudget.category}</span> budget is almost empty (${Math.round(criticalBudget.percentage)}%). Take it easy! 💸`,
-          }
-        }
-
-        // 2. Fallback: Kalau semua budget aman, kasih motivasi harian
-        if (this.dailyExpense === '0') {
-          return {
-            type: 'info',
-            icon: 'fa-leaf',
-            label: 'Daily Status',
-            message:
-              "Clean slate! You haven't spent anything yet today. Your wallet is happy! ✨",
-          }
-        }
-
-        return {
-          type: 'info',
-          icon: 'fa-chart-line',
-          label: 'Spending Trend',
-          message: `You've used <span class="text-indigo-600">Rp ${this.dailyExpense}</span> today. Everything looks under control. 🚀`,
-        }
-      },
-
-      getCategoryIcon(categoryName: string) {
-        // Tambahkan [key: string]: string agar TypeScript tidak protes
-        const categories: { [key: string]: string } = {
-          Makan: 'fa-bowl-food',
-          Transport: 'fa-car',
-          Hiburan: 'fa-clapperboard',
-          Kesehatan: 'fa-heart-pulse',
-          Belanja: 'fa-bag-shopping',
-          Tagihan: 'fa-file-invoice-dollar',
-          Rokok: 'fa-smoking',
-          Default: 'fa-wallet',
-        }
-
-        return categories[categoryName] || categories['Default']
-      },
-    })
+    Alpine.data('homeDashboard', homeDashboard)
   })
 </script>

@@ -27,9 +27,13 @@ const isIncome = type === 'income'
       class="font-jakarta color-app-text leading-tight font-extrabold md:text-xl"
     >
       <span class="font-jakarta">Rp</span>
-      <span class="font-jakarta" x-show="showAmount" x-text={alpineValue}
-      ></span>
-      <span class="font-jakarta" x-show="!showAmount" x-cloak>••••••</span>
+      <span
+        class="font-jakarta"
+        x-show="$store.app.showAmount"
+        x-text={alpineValue}></span>
+      <span class="font-jakarta" x-show="!$store.app.showAmount" x-cloak
+        >••••••</span
+      >
     </p>
   </div>
 </div>

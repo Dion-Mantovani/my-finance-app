@@ -60,11 +60,11 @@
       <span class="text-sm font-bold text-white/50">Rp</span>
       <h3
         class="font-jakarta text-4xl font-black tracking-tight text-white"
-        x-show="showAmount"
+        x-show="$store.app.showAmount"
         x-text="Number(wallet.currentBalance).toLocaleString('id-ID')"
       >
       </h3>
-      <span class="text-2xl text-white" x-show="!showAmount" x-cloak
+      <span class="text-2xl text-white" x-show="!$store.app.showAmount" x-cloak
         >••••••</span
       >
     </div>

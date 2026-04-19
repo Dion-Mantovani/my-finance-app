@@ -6,11 +6,7 @@ import Filter from '../components/expense/Filter.astro'
 ---
 
 <MainLayout title="All History">
-  <div
-    class="relative mx-auto pb-[15vh]"
-    x-data="expensePage()"
-    @toggle-privacy-event.window="togglePrivacy()"
-  >
+  <div class="relative mx-auto pb-[15vh]" x-data="expensePage()">
     <div
       class="bg-app-bg fixed top-0 right-1/2 z-50 w-full translate-x-1/2 px-4 pt-4"
     >
@@ -23,7 +19,7 @@ import Filter from '../components/expense/Filter.astro'
           <input
             type="text"
             x-model="searchQuery"
-            @input.debounce.300ms="loadData()"
+            @input.debounce.300ms="refreshAll()"
             :placeholder="isFilterActive() ? 'Cari di hasil filter...' : 'Cari transaksi...'"
             class="w-full rounded-2xl border border-slate-100 bg-white p-3 pl-11 text-xs font-bold shadow-sm transition-all outline-none focus:border-indigo-500"
           />
@@ -52,7 +48,7 @@ import Filter from '../components/expense/Filter.astro'
                 <input
                   type="date"
                   x-model="selectedDate"
-                  @change="startDate = ''; endDate = ''; loadData()"
+                  @change="startDate = ''; endDate = ''; refreshAll()"
                   class="absolute inset-0 cursor-pointer opacity-0"
                 />
                 <div class="text-xs font-bold text-slate-700">
@@ -111,13 +107,15 @@ import Filter from '../components/expense/Filter.astro'
               Pemasukan
             </p>
             <p
-              x-show="showAmount"
+              x-show="$store.app.showAmount"
               class="text-xs font-black text-white"
               x-text="'Rp' + summary.income.toLocaleString()"
             >
               0
             </p>
-            <span class="text-white" x-show="!showAmount" x-cloak>•••</span>
+            <span class="text-white" x-show="!$store.app.showAmount" x-cloak
+              >•••</span
+            >
           </div>
 
           <div class="h-8 w-px bg-indigo-500/50"></div>
@@ -129,13 +127,15 @@ import Filter from '../components/expense/Filter.astro'
               Pengeluaran
             </p>
             <p
-              x-show="showAmount"
+              x-show="$store.app.showAmount"
               class="text-xs font-black text-white"
               x-text="'Rp' + summary.expense.toLocaleString()"
             >
               0
             </p>
-            <span class="text-white" x-show="!showAmount" x-cloak>•••</span>
+            <span class="text-white" x-show="!$store.app.showAmount" x-cloak
+              >•••</span
+            >
           </div>
 
           <div class="h-8 w-px bg-indigo-500/50"></div>
@@ -147,13 +147,15 @@ import Filter from '../components/expense/Filter.astro'
               Balance
             </p>
             <p
-              x-show="showAmount"
+              x-show="$store.app.showAmount"
               class="text-xs font-black text-white"
               x-text="'Rp' + summary.balance.toLocaleString()"
             >
               0
             </p>
-            <span class="text-white" x-show="!showAmount" x-cloak>•••</span>
+            <span class="text-white" x-show="!$store.app.showAmount" x-cloak
+              >•••</span
+            >
           </div>
         </div>
       </section>
@@ -179,17 +181,17 @@ import Filter from '../components/expense/Filter.astro'
                   >
                     <span
                       class="text-[10px] font-black tracking-[0.2em] text-indigo-500 uppercase"
-                      x-text="formatDateTitle(date)"></span>
+                      x-text="storage.formatDateTitle(date)"></span>
 
                     <div
                       class="flex items-center gap-2 rounded-full border border-indigo-200 bg-slate-50 px-3 py-1"
                     >
                       <span
-                        x-show="showAmount"
+                        x-show="$store.app.showAmount"
                         class="text-xs font-black text-slate-700"
                         x-text="'Rp' + (groupedTransactions[date].totalDaily || 0).toLocaleString('id-ID')"
                       ></span>
-                      <span x-show="!showAmount" x-cloak>•••</span>
+                      <span x-show="!$store.app.showAmount" x-cloak>•••</span>
                     </div>
                   </div>
 
@@ -283,15 +285,15 @@ import Filter from '../components/expense/Filter.astro'
             >
             <div class="no-scrollbar flex gap-2 overflow-x-auto pb-2">
               <button
-                @click="filterWallet = 'all'"
+                @click="filterWallet = 'all'; refreshAll()"
                 :class="filterWallet === 'all' ? 'bg-indigo-600 text-white' : 'bg-slate-50 text-slate-500'"
                 class="shrink-0 rounded-xl px-4 py-2 text-[10px] font-bold uppercase transition-all"
-                >Semua</button
+                >All</button
               >
-              <template x-for="w in wallets">
+              <template x-for="w in wallets" :key="w.id">
                 <button
-                  @click="filterWallet = w.name"
-                  :class="filterWallet === w.name ? 'bg-indigo-600 text-white' : 'bg-slate-50 text-slate-500'"
+                  @click="filterWallet = String(w.id); refreshAll()"
+                  :class="filterWallet === w.id ? 'bg-indigo-600 text-white' : 'bg-slate-50 text-slate-500'"
                   class="shrink-0 rounded-xl px-4 py-2 text-[10px] font-bold uppercase transition-all"
                   x-text="w.name"></button>
               </template>
@@ -311,7 +313,7 @@ import Filter from '../components/expense/Filter.astro'
                   :class="filterCategory === 'all' ? 'bg-indigo-600 text-white' : 'bg-slate-50 text-slate-500'"
                   class="rounded-xl px-4 py-2 text-[9px] font-bold tracking-widest uppercase transition-all"
                 >
-                  Semua
+                  All
                 </button>
 
                 <template x-for="(cat, index) in categories" :key="index">
@@ -347,479 +349,11 @@ import Filter from '../components/expense/Filter.astro'
 </MainLayout>
 
 <script>
-  import { storage } from '../utils/storage'
+  import Alpine from 'alpinejs'
+  import { expensePage } from '../logic/expense'
 
+  // Daftarkan ke Alpine
   document.addEventListener('alpine:init', () => {
-    // Daftarkan sebagai expensePage agar bisa dipanggil x-data="expensePage()"
-    ;(window as any).expensePage = () => ({
-      transactions: [],
-      groupedTransactions: {},
-      categoriesList: [],
-      showAmount: storage.getPrivacy(),
-      activeTab: 'All',
-      activeCategory: 'All',
-      selectedDate: new Intl.DateTimeFormat('sv-SE', {
-        timeZone: 'Asia/Jakarta',
-      }).format(new Date()),
-      startDate: '', // Untuk range
-      endDate: '', // Untuk range
-      searchQuery: '',
-      filterType: 'all',
-      filterWallet: 'all',
-      filterCategory: 'all', // State baru
-      showFilterModal: false,
-      summary: { income: 0, expense: 0, balance: 0 },
-      wallets: [], // Tambahkan ini
-      categories: [], // Tambahkan ini
-
-      init() {
-        const settings = storage.getSettings()
-        this.categoriesList = settings.categories
-        this.wallets = settings.wallets || []
-        this.categories = settings.categories || []
-        this.loadAndGroupData()
-        this.loadDailyData()
-        this.loadData()
-
-        // Dengerin perubahan (SANGAT PENTING)
-        window.addEventListener('storage', (e) => {
-          if (e.key === 'DION_PRIVACY') {
-            this.showAmount = storage.getPrivacy()
-          }
-        })
-      },
-
-      // loadData() {
-      //   const settings = storage.getSettings() as any
-      //   const wallets = settings.wallets || []
-      //   const allRawData = storage.getTransactions() || []
-
-      //   this.categories = settings.categories || []
-      //   this.wallets = wallets
-
-      //   // STEP 1: Enrich Data
-      //   const enrichedData = allRawData.map((item: any) => {
-      //     // Cari wallet berdasarkan walletId (sesuai kata lo)
-      //     const source = wallets.find(
-      //       (w: any) => String(w.id) === String(item.walletId)
-      //     )
-
-      //     // Cari wallet tujuan jika ada (untuk transfer)
-      //     const dest = item.walletIdDest
-      //       ? wallets.find(
-      //           (w: any) => String(w.id) === String(item.walletIdDest)
-      //         )
-      //       : null
-
-      //     return {
-      //       ...item,
-      //       // PENTING: Kita "timpa" atau "isi" field walletSource dengan NAMA dompetnya
-      //       // Karena TransactionItem.astro lo manggilnya x-text="item.walletSource"
-      //       walletSource: source ? source.name : 'Unknown Wallet',
-      //       walletDestName: dest ? dest.name : '',
-
-      //       // Simpan ID asli di field lain kalau butuh buat logic filter
-      //       originalWalletId: item.walletId,
-      //     }
-      //   })
-
-      //   this.transactions = enrichedData
-
-      //   // STEP 2: Filter Data
-      //   let filtered = enrichedData.filter((t: any) => {
-      //     const matchesDate =
-      //       this.startDate && this.endDate
-      //         ? t.date >= this.startDate && t.date <= this.endDate
-      //         : t.date === this.selectedDate
-
-      //     const matchesSearch =
-      //       (t.notes || '')
-      //         .toLowerCase()
-      //         .includes(this.searchQuery.toLowerCase()) ||
-      //       (t.category || '')
-      //         .toLowerCase()
-      //         .includes(this.searchQuery.toLowerCase())
-
-      //     const matchesType =
-      //       this.filterType === 'all' ? true : t.type === this.filterType
-
-      //     // Filter Wallet (Cek kecocokan NAMA yang sudah kita masukkan ke walletSource)
-      //     const matchesWallet =
-      //       this.filterWallet === 'all'
-      //         ? true
-      //         : t.walletSource === this.filterWallet ||
-      //           t.walletDestName === this.filterWallet
-
-      //     const matchesCategory =
-      //       this.filterCategory === 'all'
-      //         ? true
-      //         : t.category === this.filterCategory
-
-      //     return (
-      //       matchesDate &&
-      //       matchesSearch &&
-      //       matchesType &&
-      //       matchesWallet &&
-      //       matchesCategory
-      //     )
-      //   })
-
-      //   // STEP 3: Grouping & Hitung Total
-      //   const groups = filtered.reduce((acc: any, item: any) => {
-      //     const dateKey = item.date
-      //     if (!acc[dateKey]) {
-      //       acc[dateKey] = { items: [], totalDaily: 0 }
-      //     }
-      //     acc[dateKey].items.push(item)
-
-      //     const amt = Number(item.amount) || 0
-      //     if (item.type === 'income') acc[dateKey].totalDaily += amt
-      //     else if (item.type === 'expense') acc[dateKey].totalDaily -= amt
-
-      //     return acc
-      //   }, {})
-
-      //   // STEP 4: Sorting Descending
-      //   this.groupedTransactions = Object.keys(groups)
-      //     .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())
-      //     .reduce((obj: any, key) => {
-      //       obj[key] = groups[key]
-      //       return obj
-      //     }, {})
-      // },
-
-      loadData() {
-        // const allData = storage.getTransactions()
-        // const transactions = storage.getTransactions() || []
-        const settings = storage.getSettings() as any
-        const wallets = settings.wallets || []
-
-        const allRawData = storage.getTransactions() || []
-
-        this.categories = settings.categories || []
-        this.wallets = settings.wallets || []
-
-        // STEP 1: Enrich Data (Ubah ID jadi Nama agar UI & Filter Wallet jalan)
-        const enrichedData = allRawData.map((item: any) => {
-          const source = wallets.find((w: any) => w.id === item.walletId)
-          const dest = item.walletIdDest
-            ? wallets.find((w: any) => w.id === item.walletIdDest)
-            : null
-
-          return {
-            ...item,
-            walletSource: source ? source.name : 'Unknown Wallet',
-            walletDestName: dest ? dest.name : '',
-          }
-        })
-
-        // Simpan ke state (buat jaga-jaga kalau dipake di tempat lain)
-        this.transactions = enrichedData
-
-        // STEP 2: Filter Data (Gunakan enrichedData)
-        let filtered = enrichedData.filter((t: any) => {
-          const matchesDate =
-            this.startDate && this.endDate
-              ? t.date >= this.startDate && t.date <= this.endDate
-              : t.date === this.selectedDate
-
-          const matchesSearch =
-            (t.notes || '')
-              .toLowerCase()
-              .includes(this.searchQuery.toLowerCase()) ||
-            (t.category || '')
-              .toLowerCase()
-              .includes(this.searchQuery.toLowerCase())
-
-          const matchesType =
-            this.filterType === 'all' ? true : t.type === this.filterType
-
-          // Sekarang matchesWallet aman karena t.walletSource sudah ada namanya
-          const matchesWallet =
-            this.filterWallet === 'all'
-              ? true
-              : t.walletSource === this.filterWallet ||
-                t.walletDestName === this.filterWallet
-
-          const matchesCategory =
-            this.filterCategory === 'all'
-              ? true
-              : t.category === this.filterCategory
-
-          return (
-            matchesDate &&
-            matchesSearch &&
-            matchesType &&
-            matchesWallet &&
-            matchesCategory
-          )
-        })
-
-        // 3. Grouping & Hitung Total Harian
-        const groups = filtered.reduce((acc: any, item: any) => {
-          const dateKey = item.date
-          if (!acc[dateKey]) {
-            acc[dateKey] = { items: [], totalDaily: 0 }
-          }
-
-          acc[dateKey].items.push(item)
-
-          // Hitung saldo harian (Income - Expense), Transfer diabaikan
-          const amt = Number(item.amount) || 0
-          if (item.type === 'income') acc[dateKey].totalDaily += amt
-          else if (item.type === 'expense') acc[dateKey].totalDaily -= amt
-
-          return acc
-        }, {})
-
-        // 4. Sorting Tanggal (Descending: Terbaru ke Terlama)
-        this.groupedTransactions = Object.keys(groups)
-          .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())
-          .reduce((obj: any, key) => {
-            obj[key] = groups[key]
-            return obj
-          }, {})
-      },
-
-      isFilterActive() {
-        return (
-          this.filterType !== 'all' ||
-          this.filterWallet !== 'all' ||
-          this.filterCategory !== 'all' ||
-          (this.startDate && this.endDate) ||
-          this.searchQuery !== ''
-        )
-      },
-
-      resetFilter() {
-        this.filterType = 'all'
-        this.filterWallet = 'all'
-        this.filterCategory = 'all'
-        this.startDate = ''
-        this.endDate = ''
-        this.searchQuery = ''
-        this.loadData()
-      },
-
-      // Di dalam expensePage()
-      getDateLabel() {
-        // 1. Kalo lagi pake Custom Range Date
-        if (this.startDate && this.endDate) {
-          const s = new Date(this.startDate)
-          const e = new Date(this.endDate)
-
-          // Format: Tanggal, Bulan, Tahun (Tanpa Hari)
-          const options: any = {
-            day: 'numeric',
-            month: 'short',
-            year: 'numeric',
-          }
-          return `${s.toLocaleDateString('id-ID', options)} - ${e.toLocaleDateString('id-ID', options)}`
-        }
-
-        // 2. Kalo Single Date (Harian)
-        const d = new Date(this.selectedDate)
-        const today = new Intl.DateTimeFormat('sv-SE', {
-          timeZone: 'Asia/Jakarta',
-        }).format(new Date())
-
-        // Format dasar: Tanggal, Bulan, Tahun
-        const dateOptions: any = {
-          day: 'numeric',
-          month: 'long',
-          year: 'numeric',
-        }
-        const dateStr = d.toLocaleDateString('id-ID', dateOptions)
-
-        // Cek apakah hari ini
-        if (this.selectedDate === today) {
-          return `Today, ${dateStr}`
-        }
-
-        // Jika bukan hari ini, tampilkan Nama Hari
-        const dayName = d.toLocaleDateString('id-ID', { weekday: 'long' })
-        return `${dayName}, ${dateStr}`
-      },
-
-      changeDate(days: number) {
-        const d = new Date(this.selectedDate)
-        d.setDate(d.getDate() + days)
-
-        // Update selectedDate dengan format YYYY-MM-DD
-        this.selectedDate = d.toISOString().split('T')[0]
-
-        // PENTING: Panggil loadDailyData setelah tanggal berubah!
-        this.loadDailyData()
-        this.loadData()
-      },
-
-      applyFilter() {
-        this.showFilterModal = false
-        this.loadData()
-      },
-
-      loadDailyData() {
-        const allData = storage.getTransactions() || []
-
-        // 1. Filter data berdasarkan tanggal terpilih (Format YYYY-MM-DD)
-        // Pastikan format t.date dan this.selectedDate sama
-        const filteredItems = allData.filter((t: any) => {
-          // Jika filter lo harian, biarkan begini.
-          // Tapi kalau nanti lo mau filter range, logic ini tinggal diganti.
-          return t.date === this.selectedDate
-        })
-
-        // 2. Hitung Summary (Dinamis mengikuti hasil filter di atas)
-        let inc = 0
-        let exp = 0
-
-        filteredItems.forEach((item: any) => {
-          const amt = Number(item.amount) || 0
-          if (item.type === 'income') {
-            inc += amt
-          } else if (item.type === 'expense' || item.type === 'transfer') {
-            // Catatan: Transfer biasanya tidak masuk income/expense summary global,
-            // tapi kalau lo mau hitung sebagai 'pengeluaran' dari wallet asal, tambahkan di sini.
-            exp += amt
-          }
-        })
-
-        // Update State Summary
-        this.summary = {
-          income: inc,
-          expense: exp,
-          balance: inc - exp,
-        }
-
-        // 3. Update Grouped Transactions agar UI List ikut berubah
-        // Kita pakai object dengan key [this.selectedDate] agar template lo tetap jalan
-        this.groupedTransactions =
-          filteredItems.length > 0
-            ? {
-                [this.selectedDate]: {
-                  items: filteredItems.sort((a: any, b: any) => b.id - a.id), // Terbaru di atas
-                  totalDaily: inc - exp,
-                },
-              }
-            : {}
-      },
-
-      formatDisplayDate(dateStr: string) {
-        const options: any = {
-          weekday: 'long',
-          day: 'numeric',
-          month: 'long',
-          year: 'numeric',
-        }
-        const today = new Intl.DateTimeFormat('sv-SE', {
-          timeZone: 'Asia/Jakarta',
-        }).format(new Date())
-
-        if (dateStr === today)
-          return (
-            'Today, ' +
-            new Date(dateStr).toLocaleDateString('id-ID', {
-              day: 'numeric',
-              month: 'short',
-            })
-          )
-        return new Date(dateStr).toLocaleDateString('id-ID', options)
-      },
-
-      // Fungsi Toggle Mata
-      togglePrivacy() {
-        const newState = !this.showAmount
-        this.showAmount = newState
-        storage.setPrivacy(newState)
-        window.dispatchEvent(new Event('storage'))
-      },
-
-      // Fungsi ini dipanggil pas klik Tab atau tombol Search
-      handleFilter(type: any, value: any) {
-        if (type === 'tab') this.activeTab = value
-        if (type === 'category') this.activeCategory = value
-
-        this.loadAndGroupData()
-      },
-      loadAndGroupData() {
-        let allTrans = storage.getTransactions()
-
-        // 1. Filter berdasarkan Tab (All, Expense, Income, Transfer)
-        if (this.activeTab !== 'All') {
-          allTrans = allTrans.filter(
-            (t: any) => t.type.toLowerCase() === this.activeTab.toLowerCase()
-          )
-        }
-
-        // 2. Filter berdasarkan Category
-        if (this.activeCategory !== 'All') {
-          allTrans = allTrans.filter(
-            (t: any) => t.category === this.activeCategory
-          )
-        }
-
-        // 3. Filter berdasarkan Search Query
-        if (this.searchQuery) {
-          allTrans = allTrans.filter(
-            (t: any) =>
-              (t.notes &&
-                t.notes
-                  .toLowerCase()
-                  .includes(this.searchQuery.toLowerCase())) ||
-              (t.category &&
-                t.category
-                  .toLowerCase()
-                  .includes(this.searchQuery.toLowerCase()))
-          )
-        }
-
-        // Proses grouping data berdasarkan tanggal
-        const groups = allTrans.reduce((acc: any, item: any) => {
-          const dateKey = item.date
-          if (!acc[dateKey]) {
-            acc[dateKey] = { items: [], totalDaily: 0 }
-          }
-
-          acc[dateKey].items.push(item)
-
-          // REVISI LOGIKA: Total Transaksi (Income - Expense), Abaikan Transfer
-          const amt = Number(item.amount) || 0
-
-          if (item.type === 'income') {
-            acc[dateKey].totalDaily += amt
-          } else if (item.type === 'expense') {
-            acc[dateKey].totalDaily -= amt
-          }
-          // Jika item.type === 'transfer', kita abaikan (tidak nambah/kurang)
-
-          return acc
-        }, {})
-
-        // Urutkan tanggal dari yang terbaru (descending)
-        this.groupedTransactions = Object.keys(groups)
-          .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())
-          .reduce((obj: any, key) => {
-            obj[key] = groups[key]
-            return obj
-          }, {})
-      },
-
-      formatDateTitle(dateStr: string) {
-        const d = new Date(dateStr)
-        const today = new Intl.DateTimeFormat('sv-SE', {
-          timeZone: 'Asia/Jakarta',
-        }).format(new Date())
-
-        const options: any = { day: 'numeric', month: 'long', year: 'numeric' }
-        const dateFormatted = d.toLocaleDateString('id-ID', options)
-
-        if (dateStr === today) {
-          return `(Today) ${dateFormatted}`
-        }
-
-        const dayName = d.toLocaleDateString('id-ID', { weekday: 'long' })
-        return `${dayName}, ${dateFormatted}`
-      },
-    })
+    Alpine.data('expensePage', expensePage)
   })
 </script>
