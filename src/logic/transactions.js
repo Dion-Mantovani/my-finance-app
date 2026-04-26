@@ -21,6 +21,10 @@ export const transactionForm = () => ({
   activeIndex: -1,
   showWalletModal: false,
   modalStep: 'source',
+  toast: {
+    show: false,
+    message: '',
+  },
 
   // Data Store (Local Cache)
   wallets: [],
@@ -96,6 +100,19 @@ export const transactionForm = () => ({
     this.showWalletModal = false
     this.modalStep = 'source' // Reset step biar pas dibuka lagi balik ke awal
     this.$nextTick(() => this.$refs.amountInput?.focus())
+  },
+
+  _resetFormBatching() {
+    // TRIGGER NOTIFIKASI (Kita buat state ini nanti)
+    this.showToast('Transaksi tersimpan!')
+
+    // SMART RESET (Poin Penting Checklist 1)
+    this.amount = '' // Kosongin nominal
+    this.notes = '' // Kosongin catatan
+    this.category = '' // Kosongin kategori
+
+    // AUTO FOCUS (Balik ke input nominal)
+    this.$refs.amountInput?.focus()
   },
   // ----------------------- UI HELPERS / COMPUTED LOGIC -----------------------
 
@@ -179,6 +196,16 @@ export const transactionForm = () => ({
     }
   },
 
+  showToast(msg) {
+    this.toast.message = msg
+    this.toast.show = true
+
+    // Biar ilang sendiri setelah 3 detik
+    setTimeout(() => {
+      this.toast.show = false
+    }, 3000)
+  },
+
   // ----------------------- USER ACTION  -----------------------
 
   async confirmDelete() {
@@ -198,7 +225,7 @@ export const transactionForm = () => ({
     window.location.href = '/expense'
   },
 
-  async saveRecord() {
+  async saveRecord(isAddMore = false) {
     // 1. Guard Clauses (Validasi Berlapis)
     if (!this.amount || this.amount === '0') alert('Nominal harus diisi!')
     if (!this.walletSourceId) alert('Pilih rekening dulu!')
@@ -241,7 +268,12 @@ export const transactionForm = () => ({
 
     storage.setTransactions(history)
 
-    // 4. Cleanup & Redirect
-    window.location.href = '/expense'
+    // 4. Logic Redirect vs Batching
+    if (isAddMore) {
+      this._resetFormBatching()
+    } else {
+      // Jika simpan biasa, baru pindah halaman
+      window.location.href = '/expense'
+    }
   },
 })
