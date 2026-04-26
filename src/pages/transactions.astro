@@ -18,6 +18,7 @@ import EmptyState from '../components/shared/EmptyState.astro'
     <AmountDisplay />
 
     <section class="flex-1 space-y-4 rounded-t-[2.5rem] bg-slate-50 px-6 py-2">
+      <!-- FIELD DATE -->
       <div>
         <label
           class="mb-1 ml-1 block text-[10px] font-bold tracking-widest text-slate-400 uppercase"
@@ -32,6 +33,7 @@ import EmptyState from '../components/shared/EmptyState.astro'
         />
       </div>
 
+      <!-- FIELD WALLET -->
       <div
         class="grid gap-4"
         :class="type === 'transfer' ? 'grid-cols-2' : 'grid-cols-1'"
@@ -42,7 +44,10 @@ import EmptyState from '../components/shared/EmptyState.astro'
             >From Wallet</label
           >
           <button
+            x-ref="walletBtn"
             @click="openWallet = !openWallet"
+            @click.away="openWallet = false; activeIndex = -1"
+            @keydown="handleKey($event, wallets, 'source')"
             type="button"
             class="flex w-full items-center justify-between rounded-xl border border-slate-100 bg-white p-2.5 text-[12px] font-bold text-slate-600 shadow-sm transition-all outline-none focus:border-indigo-500"
           >
@@ -55,27 +60,69 @@ import EmptyState from '../components/shared/EmptyState.astro'
 
           <div
             x-show="openWallet"
-            @click.away="openWallet = false"
-            class="absolute z-50 mt-2 w-full overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-xl"
+            class="fixed inset-0 z-100 flex items-end justify-center p-4 sm:items-center"
             x-cloak
           >
-            <template x-for="w in wallets" :key="w.id">
+            <div
+              x-show="openWallet"
+              x-transition:enter="transition ease-out duration-300"
+              x-transition:enter-start="opacity-0"
+              x-transition:enter-end="opacity-100"
+              @click="openWallet = false"
+              class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            >
+            </div>
+
+            <div
+              x-show="openWallet"
+              x-transition:enter="transition ease-out duration-300"
+              x-transition:enter-start="opacity-0 translate-y-8 sm:scale-95"
+              x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+              class="relative w-full max-w-sm overflow-hidden rounded-3xl bg-white shadow-2xl"
+            >
               <div
-                @click="walletSourceId = w.id; walletSource = w.name; openWallet = false"
-                class="cursor-pointer border-b border-slate-50 p-3 text-[12px] font-bold text-slate-600 last:border-none hover:bg-slate-50"
+                class="flex items-center justify-between border-b border-slate-50 bg-slate-50/50 p-4"
               >
-                <span x-text="w.name"></span>
+                <span
+                  class="text-[11px] font-black tracking-widest text-slate-400 uppercase"
+                  >Pilih Rekening Asal</span
+                >
+                <button
+                  @click="openWallet = false"
+                  class="text-slate-400 hover:text-slate-600"
+                >
+                  <i class="fa-solid fa-xmark"></i>
+                </button>
               </div>
-            </template>
+
+              <div class="custom-scrollbar max-h-[50vh] overflow-y-auto">
+                <template x-for="(w, i) in wallets" :key="w.id">
+                  <div
+                    @click="walletSourceId = w.id; walletSource = w.name; openWallet = false; $nextTick(() => { type === 'transfer' ? $refs.destBtn?.focus() : $refs.amountInput?.focus() })"
+                    :class="(walletSourceId === w.id || activeIndex === i) ? 'bg-indigo-50 text-indigo-600' : 'text-slate-600'"
+                    class="flex cursor-pointer items-center justify-between border-b border-slate-50 px-6 py-4 text-[13px] font-bold transition-colors last:border-none hover:bg-slate-50"
+                  >
+                    <span x-text="w.name"></span>
+                    <i
+                      x-show="activeIndex === i"
+                      class="fa-solid fa-check text-[10px]"></i>
+                  </div>
+                </template>
+              </div>
+            </div>
           </div>
         </div>
+
         <div class="relative" x-show="type === 'transfer'" x-cloak>
           <label
             class="mb-1 ml-1 block text-[10px] font-bold tracking-widest text-slate-400 uppercase"
             >To Wallet</label
           >
           <button
+            x-ref="destBtn"
             @click="openDest = !openDest"
+            @click.away="openDest = false; activeIndex = -1"
+            @keydown="handleKey($event, wallets, 'dest')"
             type="button"
             class="flex w-full items-center justify-between rounded-xl border border-slate-100 bg-white p-2.5 text-[12px] font-bold text-slate-600 shadow-sm transition-all outline-none focus:border-indigo-500"
           >
@@ -88,27 +135,86 @@ import EmptyState from '../components/shared/EmptyState.astro'
 
           <div
             x-show="openDest"
-            @click.away="openDest = false"
-            class="absolute z-50 mt-2 w-full overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-xl"
+            class="fixed inset-0 z-100 flex items-end justify-center p-4 sm:items-center"
+            x-cloak
           >
-            <template x-for="w in wallets" :key="w.id">
+            <div
+              x-show="openDest"
+              x-transition:enter="transition ease-out duration-300"
+              x-transition:enter-start="opacity-0"
+              x-transition:enter-end="opacity-100"
+              @click="openDest = false"
+              class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            >
+            </div>
+
+            <div
+              x-show="openDest"
+              x-transition:enter="transition ease-out duration-300"
+              x-transition:enter-start="opacity-0 translate-y-8 sm:scale-95"
+              x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+              class="relative w-full max-w-sm overflow-hidden rounded-3xl bg-white shadow-2xl"
+            >
               <div
-                @click="walletDestId = w.id; walletDest = w.name; openDest = false"
-                class="flex cursor-pointer items-center justify-between border-b border-slate-50 p-3 text-[12px] font-bold text-slate-600 last:border-none hover:bg-slate-50"
-                :class="w.id === walletSourceId ? 'opacity-30 pointer-events-none bg-slate-50' : ''"
+                class="flex items-center justify-between border-b border-slate-50 bg-slate-50/50 p-4"
               >
-                <span x-text="w.name"></span>
-                <template x-if="w.id === walletSourceId">
-                  <span class="text-[8px] text-slate-400 uppercase"
-                    >Same Wallet</span
+                <span
+                  class="text-[11px] font-black tracking-widest text-slate-400 uppercase"
+                  >Pilih Rekening Tujuan</span
+                >
+                <button
+                  @click="openDest = false"
+                  class="text-slate-400 hover:text-slate-600"
+                >
+                  <i class="fa-solid fa-xmark"></i>
+                </button>
+              </div>
+
+              <div class="custom-scrollbar max-h-[50vh] overflow-y-auto">
+                <template x-for="(w, i) in wallets" :key="w.id">
+                  <div
+                    @click="if(w.id !== walletSourceId) { selectValue(w, 'dest') }"
+                    :class=`w.id === walletSourceId
+                      ? 'opacity-30 pointer-events-none bg-slate-50'
+                      : (walletDestId === w.id || activeIndex === i)
+                        ? 'bg-indigo-50 text-indigo-600'
+                        : 'text-slate-600'`
+                    class="flex cursor-pointer items-center justify-between border-b border-slate-50 px-6 py-4 text-[13px] font-bold transition-colors last:border-none hover:bg-slate-50"
                   >
+                    <div class="flex flex-col">
+                      <span x-text="w.name"></span>
+                      <template x-if="w.id === walletSourceId">
+                        <span
+                          class="text-[8px] tracking-tighter text-slate-400 uppercase"
+                          >Sudah dipilih di sumber</span
+                        >
+                      </template>
+                    </div>
+
+                    <i
+                      x-show="activeIndex === i"
+                      class="fa-solid fa-check text-[10px]"></i>
+                  </div>
                 </template>
               </div>
-            </template>
+            </div>
           </div>
         </div>
       </div>
 
+      <!-- FIELD CATEGORY -->
+      <CustomSelect
+        x-show="type !== 'transfer'"
+        label="Category"
+        xModel="category"
+        placeholder="Select"
+        options="categories"
+        openState="openCategory"
+        mode="cat"
+        xRef="catBtn"
+      />
+
+      <!-- FIELD NOTES -->
       <div>
         <label
           class="mb-1 ml-1 block text-[10px] font-bold tracking-widest text-slate-400 uppercase"
@@ -126,17 +232,7 @@ import EmptyState from '../components/shared/EmptyState.astro'
         />
       </div>
 
-      <CustomSelect
-        x-show="type !== 'transfer'"
-        label="Category"
-        xModel="category"
-        placeholder="Select"
-        options="categories"
-        openState="openCategory"
-        mode="cat"
-        xRef="catBtn"
-      />
-
+      <!-- ACTION BUTTON -->
       <div class="mt-5 flex gap-3 space-y-3">
         <button
           @click="saveRecord()"
@@ -181,7 +277,7 @@ import EmptyState from '../components/shared/EmptyState.astro'
           <template x-if="wallets.length > 0">
             <template x-for="w in wallets">
               <button
-                @click="selectWalletInitial(w, { $nextTick, $refs })"
+                @click="selectWalletInitial(w)"
                 :disabled="modalStep === 'dest' && w.name === walletSource"
                 :class="modalStep === 'dest' && w.name === walletSource ? 'opacity-30' : 'hover:bg-indigo-50'"
                 class="flex items-center justify-between rounded-2xl border border-slate-100 p-5 transition-all"

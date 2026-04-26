@@ -1,6 +1,7 @@
 import { storage } from '../utils/storage.js'
 
 export const budgetPage = () => ({
+  storage,
   budgets: [],
   categoriesList: [],
   isBudgetModalOpen: false,
@@ -22,7 +23,6 @@ export const budgetPage = () => ({
     'November',
     'Desember',
   ],
-
   newBudget: { category: '', limit: 0 },
 
   init() {

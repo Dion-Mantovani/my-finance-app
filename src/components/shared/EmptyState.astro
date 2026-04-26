@@ -26,16 +26,26 @@ const {
   </p>
 
   {
-    type === 'link' ? (
-      <a href={link} class="btn-primary w-full">
-        <i class="fa-solid fa-plus" />
-        {buttonText}
-      </a>
-    ) : (
-      <button @click={onClick} class="btn-base btn-primary w-full">
-        <i class="fa-solid fa-plus" />
-        {buttonText}
-      </button>
+    buttonText && (
+      <div>
+        {type === 'link' ? (
+          <a
+            href={link}
+            class="btn-primary inline-flex w-full items-center justify-center gap-2"
+          >
+            <i class="fa-solid fa-plus" />
+            {buttonText}
+          </a>
+        ) : (
+          <button
+            @click={onClick}
+            class="btn-base btn-primary inline-flex w-full items-center justify-center gap-2"
+          >
+            <i class="fa-solid fa-plus" />
+            {buttonText}
+          </button>
+        )}
+      </div>
     )
   }
 </div>

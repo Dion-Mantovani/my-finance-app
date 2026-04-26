@@ -54,12 +54,13 @@
 
           <div class="text-right">
             <p
-              x-show="showAmount"
+              x-show="$store.app.showAmount"
               class="text-sm font-black text-[#1D1E20]"
               x-text="'Rp ' + Number(cat.amount).toLocaleString('id-ID')"
             >
             </p>
-            <span class="font-jakarta" x-show="!showAmount" x-cloak>••••••</span
+            <span class="font-jakarta" x-show="!$store.app.showAmount" x-cloak
+              >••••••</span
             >
 
             <p

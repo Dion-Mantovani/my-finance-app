@@ -105,5 +105,39 @@
     @apply flex items-center justify-center gap-2 rounded-2xl bg-indigo-600 px-6 py-4 text-xs font-bold whitespace-nowrap text-white shadow-lg shadow-indigo-100 transition-all hover:bg-indigo-700 active:scale-95;
   }
 
+  /* Hilangkan icon bawaan browser (opsional kalau mau lo ganti icon sendiri) */
+  .custom-date-input::-webkit-calendar-picker-indicator {
+    background: transparent;
+    bottom: 0;
+    color: transparent;
+    cursor: pointer;
+    height: auto;
+    left: 0;
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: auto;
+  }
+
+  /* Trik agar placeholder muncul di mobile */
+  .custom-date-input {
+    position: relative;
+    appearance: none;
+    -webkit-appearance: none;
+    min-height: 45px; /* Biar ukurannya konsisten */
+  }
+
+  /* Munculkan teks format saat kosong */
+  .custom-date-input:before {
+    content: attr(placeholder);
+    width: 100%;
+    color: #94a3b8; /* slate-400 */
+  }
+
+  .custom-date-input:focus:before,
+  .custom-date-input:not([value='']):before {
+    content: '';
+  }
+
   /* ================= Batas Akhir Class Saktimu Disini ================= */
 }

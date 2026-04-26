@@ -2,7 +2,7 @@ import { storage } from '../utils/storage.js'
 import ApexCharts from 'apexcharts'
 
 export const statsPage = () => ({
-  showAmount: localStorage.getItem('DION_PRIVACY') !== 'false',
+  storage,
   timeFrame: 'Weekly',
   chart: null,
   topCategories: [],

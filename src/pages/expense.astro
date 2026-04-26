@@ -109,7 +109,7 @@ import Filter from '../components/expense/Filter.astro'
             <p
               x-show="$store.app.showAmount"
               class="text-xs font-black text-white"
-              x-text="'Rp' + summary.income.toLocaleString()"
+              x-text="summary.income.toLocaleString()"
             >
               0
             </p>
@@ -129,7 +129,7 @@ import Filter from '../components/expense/Filter.astro'
             <p
               x-show="$store.app.showAmount"
               class="text-xs font-black text-white"
-              x-text="'Rp' + summary.expense.toLocaleString()"
+              x-text="summary.expense.toLocaleString()"
             >
               0
             </p>
@@ -149,7 +149,7 @@ import Filter from '../components/expense/Filter.astro'
             <p
               x-show="$store.app.showAmount"
               class="text-xs font-black text-white"
-              x-text="'Rp' + summary.balance.toLocaleString()"
+              x-text="summary.balance.toLocaleString()"
             >
               0
             </p>
@@ -240,23 +240,33 @@ import Filter from '../components/expense/Filter.astro'
       >
         <div class="mx-auto mb-8 h-1.5 w-12 rounded-full bg-slate-100"></div>
 
-        <div class="no-scrollbar max-h-[80vh] space-y-8 overflow-y-auto pb-10">
+        <div class="no-scrollbar max-h-[80svh] space-y-8 overflow-y-auto pb-10">
           <div>
             <label
               class="mb-3 block text-[10px] font-black tracking-widest text-slate-400 uppercase"
               >Custom Range</label
             >
             <div class="grid grid-cols-2 gap-3">
-              <input
-                type="date"
-                x-model="startDate"
-                class="rounded-xl border-none bg-slate-50 p-3 text-xs font-bold outline-none"
-              />
-              <input
-                type="date"
-                x-model="endDate"
-                class="rounded-xl border-none bg-slate-50 p-3 text-xs font-bold outline-none"
-              />
+              <div class="relative">
+                <input
+                  type="date"
+                  x-model="startDate"
+                  class="custom-date-input w-full rounded-xl border-none bg-slate-50 p-3 text-xs font-bold text-slate-600 outline-none"
+                />
+                <i
+                  class="fa-solid fa-chevron-down pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-[10px] text-slate-400"
+                ></i>
+              </div>
+              <div class="relative">
+                <input
+                  type="date"
+                  x-model="endDate"
+                  class="custom-date-input w-full rounded-xl border-none bg-slate-50 p-3 text-xs font-bold text-slate-600 outline-none"
+                />
+                <i
+                  class="fa-solid fa-chevron-down pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-[10px] text-slate-400"
+                ></i>
+              </div>
             </div>
           </div>
 
@@ -306,21 +316,21 @@ import Filter from '../components/expense/Filter.astro'
             >
               Berdasarkan Kategori
             </label>
-            <div class="flex flex-wrap gap-2">
-              <div class="flex flex-wrap gap-2">
+            <div class="no-scrollbar overflow-x-auto pb-2">
+              <div class="flex max-h-27.5 w-165 flex-wrap content-start gap-2">
                 <button
-                  @click="filterCategory = 'all'"
+                  @click="filterCategory = 'all'; refreshAll()"
                   :class="filterCategory === 'all' ? 'bg-indigo-600 text-white' : 'bg-slate-50 text-slate-500'"
-                  class="rounded-xl px-4 py-2 text-[9px] font-bold tracking-widest uppercase transition-all"
+                  class="rounded-xl px-4 py-2 text-[10px] font-bold whitespace-nowrap uppercase transition-all"
                 >
                   All
                 </button>
 
                 <template x-for="(cat, index) in categories" :key="index">
                   <button
-                    @click="filterCategory = (typeof cat === 'object' ? cat.name : cat)"
+                    @click="filterCategory = (typeof cat === 'object' ? cat.name : cat); refreshAll()"
                     :class="filterCategory === (typeof cat === 'object' ? cat.name : cat) ? 'bg-indigo-600 text-white' : 'bg-slate-50 text-slate-500'"
-                    class="rounded-xl px-4 py-2 text-[9px] font-bold tracking-widest uppercase transition-all"
+                    class="rounded-xl px-4 py-2 text-[10px] font-bold whitespace-nowrap uppercase transition-all"
                   >
                     <span x-text="typeof cat === 'object' ? cat.name : cat"
                     ></span>
@@ -328,6 +338,26 @@ import Filter from '../components/expense/Filter.astro'
                 </template>
               </div>
             </div>
+            <!-- <div class="flex flex-wrap gap-2">
+              <button
+                @click="filterCategory = 'all'"
+                :class="filterCategory === 'all' ? 'bg-indigo-600 text-white' : 'bg-slate-50 text-slate-500'"
+                class="rounded-xl px-4 py-2 text-[9px] font-bold tracking-widest uppercase transition-all"
+              >
+                All
+              </button>
+
+              <template x-for="(cat, index) in categories" :key="index">
+                <button
+                  @click="filterCategory = (typeof cat === 'object' ? cat.name : cat)"
+                  :class="filterCategory === (typeof cat === 'object' ? cat.name : cat) ? 'bg-indigo-600 text-white' : 'bg-slate-50 text-slate-500'"
+                  class="rounded-xl px-4 py-2 text-[9px] font-bold tracking-widest uppercase transition-all"
+                >
+                  <span x-text="typeof cat === 'object' ? cat.name : cat"
+                  ></span>
+                </button>
+              </template>
+            </div> -->
           </div>
 
           <div class="grid grid-cols-3 gap-3">

@@ -153,13 +153,24 @@ import BudgetCard from '../components/wallet/BudgetCard.astro'
         </template>
         <template x-if="budgets.length === 0">
           <div class="flex flex-col items-center">
-            <EmptyState
-              title="No Budgets Set"
-              message="You haven't set any monthly limits yet. Start budgeting to keep your expenses in check!"
-              icon="fa-chart-pie"
-              buttonText="Create First Budget"
-              onClick="isBudgetModalOpen = true"
-            />
+            <template x-if="isCurrentMonth()">
+              <EmptyState
+                title="No Budgets Set"
+                message="You haven't set any monthly limits yet."
+                icon="fa-chart-pie"
+                buttonText="Create First Budget"
+                onClick="isBudgetModalOpen = true"
+              />
+            </template>
+
+            <template x-if="!isCurrentMonth()">
+              <EmptyState
+                title="No Budget History"
+                message="There are no records for this period."
+                icon="fa-chart-pie"
+                buttonText=""
+              />
+            </template>
 
             <template x-if="getLastAvailableBudget() && isCurrentMonth()">
               <div class="mt-px w-full px-4">

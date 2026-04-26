@@ -63,7 +63,7 @@ export const storage = {
       )
       this.setSettings(settings)
 
-      // A. Bersih-bersih di level Transactions
+      // B. Bersih-bersih di level Transactions
       this._migrateTransactionCategories('SelfCare', 'Self-Care')
     }
 
@@ -83,7 +83,7 @@ export const storage = {
 
   // ---------------- 5. PRIVACY ACTIONS (Get & Set) ----------------
   getPrivacy() {
-    return _fetch(PRIVACY_KEY) || true
+    return _fetch(PRIVACY_KEY)
   },
   setPrivacy(value) {
     _store(PRIVACY_KEY, value)

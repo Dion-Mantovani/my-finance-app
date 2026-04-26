@@ -1,72 +1,66 @@
 import { storage } from '../utils/storage.js'
 
 export const expensePage = () => ({
+  // ----------------------- LOCAL STATE -----------------------
+  // Data Storage (Cache)
   storage,
   transactions: [],
   groupedTransactions: {},
   summary: { income: 0, expense: 0, balance: 0 },
 
-  // Data Master
+  // Master Data (Buat dropdown filter)
   wallets: [],
   categories: [],
 
-  // States
+  // Filter State (UI)
   searchQuery: '',
   filterType: 'all',
   filterWallet: 'all',
   filterCategory: 'all',
   startDate: '',
   endDate: '',
-  selectedDate: new Intl.DateTimeFormat('sv-SE', {
-    timeZone: 'Asia/Jakarta',
-  }).format(new Date()),
+
+  // Meta State
+  isLoading: false,
   showFilterModal: false,
 
-  init() {
-    const settings = storage.getSettings()
-    this.wallets = settings.wallets || []
-    this.categories = settings.categories || []
+  // Tanggal Default (YYYY-MM-DD)
+  selectedDate: new Date().toISOString().split('T')[0],
 
+  // ----------------- INITIALIZATION & REFRESH DATA -----------------
+
+  init() {
+    // 1. Load Master Data (Langsung dari gatekeeper storage)
+    const settings = storage.getSettings()
+    this.wallets = settings.wallets
+    this.categories = settings.categories
+
+    // 2. Initial Data Load
     this.refreshAll()
 
-    window.addEventListener('storage', () => this.refreshAll())
+    // 3. Storage Listener (Sync antar Tab)
+    window.addEventListener('storage', (event) => {
+      if (event.key === 'DION_TRANSACTIONS' || event.key === 'DION_SETTINGS') {
+        this.refreshAll()
+      }
+    })
   },
 
   refreshAll() {
     const allRawData = storage.getTransactions() || []
-    const settings = storage.getSettings()
-    const wallets = settings.wallets || []
+    const query = this.searchQuery.toLowerCase()
+    const isRange = this.startDate && this.endDate
 
-    // STEP 1: Enrich Data (Sesuai dugaan lo, ID -> Nama dulu)
-    const enrichedData = allRawData.map((item) => {
-      const source = wallets.find((w) => String(w.id) === String(item.walletId))
-      const dest = item.walletIdDest
-        ? wallets.find((w) => String(w.id) === String(item.walletIdDest))
-        : null
-
-      return {
-        ...item,
-        walletName: source ? source.name : 'Unknown Wallet', // Kita pake 'walletName' biar konsisten
-        walletDestName: dest ? dest.name : '',
-      }
-    })
-
-    const filtered = enrichedData.filter((t) => {
-      const matchesDate =
-        this.startDate && this.endDate
-          ? t.date >= this.startDate && t.date <= this.endDate
-          : t.date === this.selectedDate
+    const filtered = allRawData.filter((t) => {
+      const matchesDate = isRange
+        ? t.date >= this.startDate && t.date <= this.endDate
+        : t.date === this.selectedDate
 
       const matchesSearch =
-        (t.notes || '')
-          .toLowerCase()
-          .includes(this.searchQuery.toLowerCase()) ||
-        (t.category || '')
-          .toLowerCase()
-          .includes(this.searchQuery.toLowerCase())
+        query === '' || `${t.notes} ${t.category}`.toLowerCase().includes(query)
 
       const matchesType =
-        this.filterType === 'all' ? true : t.type === this.filterType
+        this.filterType === 'all' || t.type === this.filterType
 
       const matchesWallet =
         this.filterWallet === 'all' ||
@@ -74,9 +68,7 @@ export const expensePage = () => ({
         (t.walletIdDest && String(t.walletIdDest) === String(this.filterWallet))
 
       const matchesCategory =
-        this.filterCategory === 'all'
-          ? true
-          : t.category === this.filterCategory
+        this.filterCategory === 'all' || t.category === this.filterCategory
 
       return (
         matchesDate &&
@@ -87,28 +79,37 @@ export const expensePage = () => ({
       )
     })
 
-    this.calculateSummary(filtered)
-    this.groupData(filtered)
+    this._calculateSummary(filtered)
+    this._groupData(filtered)
     this.transactions = filtered
   },
 
-  calculateSummary(data) {
-    const income = data
-      .filter((t) => t.type === 'income')
-      .reduce((s, t) => s + Number(t.amount), 0)
-    const expense = data
-      .filter((t) => t.type === 'expense')
-      .reduce((s, t) => s + Number(t.amount), 0)
+  // ----------------------- INTERNAL HELPERS -----------------------
 
+  _calculateSummary(data) {
+    // Sekali jalan (single pass) pake reduce untuk hitung keduanya
+    const totals = data.reduce(
+      (acc, t) => {
+        const amt = Number(t.amount) || 0
+        if (t.type === 'income') acc.income += amt
+        if (t.type === 'expense') acc.expense += amt
+        return acc
+      },
+      { income: 0, expense: 0 },
+    )
+
+    // Update state dengan format currency
     this.summary = {
-      income: storage.formatCurrency(income),
-      expense: storage.formatCurrency(expense),
-      balance: storage.formatCurrency(income - expense),
+      income: storage.formatCurrency(totals.income),
+      expense: storage.formatCurrency(totals.expense),
+      balance: storage.formatCurrency(totals.income - totals.expense),
+      // Bonus: simpan angka mentahnya kalau sewaktu-waktu butuh buat logic lain
+      rawBalance: totals.income - totals.expense,
     }
   },
 
-  groupData(data) {
-    // Inisialisasi object kosong agar tidak menumpuk data lama
+  _groupData(data) {
+    // 1. Inisialisasi object untuk menampung grup
     const groups = {}
 
     data.forEach((item) => {
@@ -118,7 +119,7 @@ export const expensePage = () => ({
         groups[dateKey] = { items: [], totalDaily: 0 }
       }
 
-      // Cari nama wallet dari data master
+      // // Cari nama wallet dari data master
       const wallet = this.wallets.find((w) => w.id === item.walletId)
       const walletDest = item.walletIdDest
         ? this.wallets.find((w) => w.id === item.walletIdDest)
@@ -130,38 +131,36 @@ export const expensePage = () => ({
         walletDestName: walletDest ? walletDest.name : '',
       })
 
-      // Update saldo harian (Abaikan transfer agar tidak double count)
-      if (item.type === 'income')
-        groups[dateKey].totalDaily += Number(item.amount)
-      if (item.type === 'expense')
-        groups[dateKey].totalDaily -= Number(item.amount)
+      // 2. Hitung Saldo Harian (Net Change)
+      const amt = Number(item.amount) || 0
+      if (item.type === 'income') groups[dateKey].totalDaily += amt
+      if (item.type === 'expense') groups[dateKey].totalDaily -= amt
     })
 
-    // Sort tanggal dari yang terbaru
-    const sortedDates = Object.keys(groups).sort(
-      (a, b) => new Date(b) - new Date(a),
-    )
+    // 3. Sorting Tanggal (Terbaru di atas) & Formatting
+    const sortedResult = {}
 
-    const finalResult = {}
-    sortedDates.forEach((date) => {
-      finalResult[date] = {
-        ...groups[date],
-        formattedDate: storage.formatDateTitle(date), // Dipindah ke sini agar HTML tinggal pakai
-        totalDailyLabel: storage.formatCurrency(groups[date].totalDaily),
-      }
-    })
+    Object.keys(groups)
+      .sort((a, b) => new Date(b) - new Date(a))
+      .forEach((date) => {
+        sortedResult[date] = {
+          ...groups[date],
+          formattedDate: storage.formatDateTitle(date),
+          totalDailyLabel: storage.formatCurrency(groups[date].totalDaily),
+        }
+      })
 
-    this.groupedTransactions = finalResult
+    this.groupedTransactions = sortedResult
   },
 
-  // ------------ UI HELPERS (Hanya dipanggil di HTML) ------------
+  // ------------------- UI HELPERS / COMPUTED LOGIC -------------------
 
   isFilterActive() {
     return (
       this.filterType !== 'all' ||
       this.filterWallet !== 'all' ||
       this.filterCategory !== 'all' ||
-      (this.startDate && this.endDate) ||
+      (!!this.startDate && !!this.endDate) ||
       this.searchQuery !== ''
     )
   },
@@ -173,45 +172,70 @@ export const expensePage = () => ({
     this.startDate = ''
     this.endDate = ''
     this.searchQuery = ''
+    this.showFilterModal = false
     this.refreshAll()
   },
 
   applyFilter() {
     this.showFilterModal = false
-    this.refreshAll()
+    this.$nextTick(() => {
+      this.refreshAll()
+    })
   },
 
   getDateLabel() {
-    // 1. Range Date
+    const optionsLong = { day: 'numeric', month: 'long', year: 'numeric' }
+    const optionsShort = { day: 'numeric', month: 'short', year: 'numeric' }
+
+    // 1. Range Date (Periode)
     if (this.startDate && this.endDate) {
-      const options = { day: 'numeric', month: 'short', year: 'numeric' }
-      return `${new Date(this.startDate).toLocaleDateString('id-ID', options)} - ${new Date(this.endDate).toLocaleDateString('id-ID', options)}`
+      // Pake helper buat minimalisir error timezone
+      const start = new Date(this.startDate).toLocaleDateString(
+        'id-ID',
+        optionsShort,
+      )
+      const end = new Date(this.endDate).toLocaleDateString(
+        'id-ID',
+        optionsShort,
+      )
+      return `${start} - ${end}`
     }
 
     // 2. Single Date (Harian)
     const d = new Date(this.selectedDate)
-    const today = new Intl.DateTimeFormat('sv-SE', {
-      timeZone: 'Asia/Jakarta',
-    }).format(new Date())
+    const todayStr = new Date().toISOString().split('T')[0]
 
-    const dateStr = d.toLocaleDateString('id-ID', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    })
+    const fullDate = d.toLocaleDateString('id-ID', optionsLong)
+    const dayName = d.toLocaleDateString('id-ID', { weekday: 'long' })
 
-    // Return "Today, Tanggal" atau "Nama Hari, Tanggal"
-    return this.selectedDate === today
-      ? `Today, ${dateStr}`
-      : `${d.toLocaleDateString('id-ID', { weekday: 'long' })}, ${dateStr}`
+    // Return "Hari Ini, Tanggal" atau "Nama Hari, Tanggal"
+    return this.selectedDate === todayStr
+      ? `Hari Ini, ${fullDate}`
+      : `${dayName}, ${fullDate}`
   },
 
   changeDate(days) {
-    const d = new Date(this.selectedDate)
+    // 1. Pecah string YYYY-MM-DD biar nggak kena masalah timezone UTC
+    const [year, month, day] = this.selectedDate.split('-').map(Number)
+
+    // 2. Buat objek Date berdasarkan local time (bulan di JS mulai dari 0)
+    const d = new Date(year, month - 1, day)
+
+    // 3. Tambah/Kurang hari
     d.setDate(d.getDate() + days)
 
-    // Update state & langsung refresh UI
-    this.selectedDate = d.toISOString().split('T')[0]
+    // 4. Balikin ke format YYYY-MM-DD secara manual biar aman
+    const newY = d.getFullYear()
+    const newM = String(d.getMonth() + 1).padStart(2, '0')
+    const newD = String(d.getDate()).padStart(2, '0')
+
+    // 5. Update state & Refresh
+    this.selectedDate = `${newY}-${newM}-${newD}`
+
+    // Reset range filter kalau user navigasi harian biar nggak bentrok
+    this.startDate = ''
+    this.endDate = ''
+
     this.refreshAll()
   },
 })
