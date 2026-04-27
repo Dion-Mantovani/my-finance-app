@@ -49,7 +49,7 @@ export const transactionForm = () => ({
 
     // 3. Set Global Default (Hari ini)
     // Tips: Karena ini cuma butuh YYYY-MM-DD, kita ringkas ya
-    this.date = new Date().toISOString().split('T')[0]
+    this.date = storage.formatLocalDate()
 
     // 4. Branching: EDIT vs ADD
     if (id) {
@@ -222,7 +222,8 @@ export const transactionForm = () => ({
     storage.setTransactions(newData)
 
     // 4. Kick balik ke halaman utama
-    window.location.href = '/expense'
+    // window.location.href = '/expense'
+    window.location.href = `/expense?date=${this.date}`
   },
 
   async saveRecord(isAddMore = false) {
@@ -273,7 +274,8 @@ export const transactionForm = () => ({
       this._resetFormBatching()
     } else {
       // Jika simpan biasa, baru pindah halaman
-      window.location.href = '/expense'
+      // window.location.href = '/expense'
+      window.location.href = `/expense?date=${this.date}`
     }
   },
 })

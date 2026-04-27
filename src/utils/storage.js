@@ -141,6 +141,7 @@ export const storage = {
     if (hour < 19) return { title: 'Good Evening', icon: '🌅' }
     return { title: 'Good Night', icon: '🌙' }
   },
+
   // ---------------------- STYLE UTILITIES ----------------------
 
   formatCurrency(num) {
@@ -169,6 +170,12 @@ export const storage = {
     const label = dateStr === todayStr ? ' (Hari ini)' : ''
 
     return `${dayName}${label}, ${dateFormatted}`
+  },
+
+  formatLocalDate(date = new Date()) {
+    const offset = date.getTimezoneOffset()
+    const localDate = new Date(date.getTime() - offset * 60 * 1000)
+    return localDate.toISOString().split('T')[0]
   },
 
   getCategoryIcon(categoryName) {

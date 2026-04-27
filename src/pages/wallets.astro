@@ -16,6 +16,180 @@ import WalletCard from '../components/wallet/WalletCard.astro'
       </p>
     </header>
 
+    <section
+      class="relative mb-6 overflow-hidden rounded-[2.5rem] border-none bg-indigo-950 p-7 text-white shadow-2xl shadow-indigo-100 dark:shadow-none"
+      x-data="{ activeTip: null }"
+      @click.away="activeTip = null"
+    >
+      <div
+        class="absolute -top-16 -right-16 h-60 w-60 rounded-full bg-indigo-900 opacity-60"
+      >
+      </div>
+      <div
+        class="absolute -bottom-10 -left-10 h-40 w-40 rounded-full bg-indigo-900/50 opacity-40"
+      >
+      </div>
+
+      <div class="relative z-10 flex flex-col items-start">
+        <p
+          class="mb-2 text-[10px] font-bold tracking-[0.2em] uppercase opacity-50"
+        >
+          My Total Assets
+        </p>
+
+        <h2 class="text-4xl font-black tracking-tight lg:text-5xl">
+          <span class="text-3xl text-white">Rp</span>
+          <span
+            class="font-jakarta"
+            x-text="formatNumber(totalAsset)"
+            x-show="$store.app.showAmount"></span>
+          <span class="font-jakarta" x-show="!$store.app.showAmount" x-cloak
+            >••••••••</span
+          >
+        </h2>
+
+        <div class="mt-6 flex items-center gap-4">
+          <div
+            class="relative flex cursor-pointer items-center gap-1.5"
+            @click.stop="activeTip = activeTip === 'wallet' ? null : 'wallet'"
+          >
+            <div
+              x-cloak
+              x-show="activeTip === 'wallet'"
+              x-transition
+              class="absolute bottom-full left-0 mb-2 rounded-lg bg-white px-2 py-1 text-[9px] font-bold whitespace-nowrap text-indigo-950 shadow-xl"
+            >
+              Jumlah rekening/dompet aktif
+              <div
+                class="absolute top-full left-2 border-4 border-transparent border-t-white"
+              >
+              </div>
+            </div>
+
+            <i class="fa-solid fa-wallet text-[10px] text-indigo-400"></i>
+            <p
+              class="text-[10px] font-bold tracking-wider text-indigo-200 uppercase"
+            >
+              <span x-text="wallets.length"></span> Wallets
+            </p>
+          </div>
+
+          <div class="h-3 w-px bg-white/30"></div>
+
+          <div
+            class="relative flex cursor-pointer items-center gap-1.5 whitespace-nowrap"
+            @click.stop="activeTip = activeTip === 'top' ? null : 'top'"
+          >
+            <div
+              x-cloak
+              x-show="activeTip === 'top'"
+              x-transition
+              class="absolute bottom-full -left-2 mb-2 rounded-lg bg-white px-2 py-1 text-[9px] font-bold whitespace-nowrap text-indigo-950 shadow-xl"
+            >
+              Penyimpan saldo terbesar saat ini
+              <div
+                class="absolute top-full left-2 border-4 border-transparent border-t-white"
+              >
+              </div>
+            </div>
+
+            <i class="fa-solid fa-star text-[10px] text-amber-400"></i>
+            <p
+              class="text-[10px] font-bold tracking-tighter text-indigo-200 uppercase"
+            >
+              <span x-text="topWalletName"></span>
+            </p>
+          </div>
+
+          <div class="h-3 w-px bg-white/40"></div>
+
+          <div
+            class="relative flex cursor-pointer items-center gap-1.5"
+            @click.stop="activeTip = activeTip === 'acts' ? null : 'acts'"
+          >
+            <div
+              x-cloak
+              x-show="activeTip === 'acts'"
+              x-transition
+              class="absolute right-0 bottom-full mb-2 rounded-lg bg-white px-2 py-1 text-[9px] font-bold whitespace-nowrap text-indigo-950 shadow-xl"
+            >
+              Total catatan transaksi bulan ini
+              <div
+                class="absolute top-full right-2 border-4 border-transparent border-t-white"
+              >
+              </div>
+            </div>
+
+            <i class="fa-solid fa-chart-line text-[10px] text-emerald-400"></i>
+            <p
+              class="text-[10px] font-bold tracking-wider text-indigo-200 uppercase"
+            >
+              <span x-text="totalTransactionsCount"></span> Acts
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- <section
+      class="relative mb-6 overflow-hidden rounded-[2.5rem] border-none bg-indigo-950 p-7 text-white shadow-2xl shadow-indigo-100 dark:shadow-none"
+    >
+      <div
+        class="absolute -top-16 -right-16 h-60 w-60 rounded-full bg-indigo-900 opacity-60"
+      >
+      </div>
+      <div
+        class="absolute -bottom-10 -left-10 h-40 w-40 rounded-full bg-indigo-900/50 opacity-40"
+      >
+      </div>
+
+      <div class="relative z-10 flex flex-col items-start text-center">
+        <p
+          class="mb-2 text-[10px] font-bold tracking-[0.2em] uppercase opacity-50"
+        >
+          My Total Assets
+        </p>
+
+        <h2 class="text-4xl font-black tracking-tight lg:text-5xl">
+          <span class="text-white">Rp</span>
+          <span class="font-jakarta" x-text="formatNumber(totalAsset)"></span>
+        </h2>
+
+        <div class="mt-6 flex items-center gap-4">
+          <div class="flex items-center gap-1.5">
+            <i class="fa-solid fa-wallet text-[10px] text-indigo-400"></i>
+            <p
+              class="text-[10px] font-bold tracking-wider text-indigo-200 uppercase"
+            >
+              <span x-text="wallets.length"></span> Wallets
+            </p>
+          </div>
+
+          <div class="h-3 w-px bg-white/30"></div>
+
+          <div class="flex items-center gap-1.5 whitespace-nowrap">
+            <i class="fa-solid fa-star text-[10px] text-amber-400"></i>
+            <p
+              class="text-[10px] font-bold tracking-tighter text-indigo-200 uppercase"
+            >
+              <span x-text="topWalletName"></span>
+            </p>
+          </div>
+
+          <div class="h-3 w-px bg-white/40"></div>
+
+          <div class="flex items-center gap-1.5">
+            <i class="fa-solid fa-chart-line text-[10px] text-emerald-400"></i>
+            <p
+              class="text-[10px] font-bold tracking-wider text-indigo-200 uppercase"
+            >
+              <span x-text="totalTransactionsCount"></span> Acts
+            </p>
+          </div>
+        </div>
+      </div>
+    </section> -->
+
     <!-- WALLETS LIST -->
     <section>
       <div x-cloak class="space-y-6">

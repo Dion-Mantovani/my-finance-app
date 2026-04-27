@@ -125,11 +125,29 @@
     appearance: none;
     -webkit-appearance: none;
     min-height: 45px; /* Biar ukurannya konsisten */
+    width: 100%; /* Pastikan mengisi penuh container */
+
+    /* RESET INTERNAL BROWSER */
+    padding-left: 12px !important; /* Paksa mulai dari kiri */
+    padding-right: 30px !important; /* Kasih ruang buat chevron */
+    text-align: left !important;
+    display: flex;
+    align-items: center;
+  }
+
+  /* Hilangkan space kosong bawaan browser di sebelah kiri */
+  .custom-date-input::-webkit-date-and-time-value {
+    margin-left: 0 !important;
+    padding-left: 0 !important;
+    text-align: left !important;
+    min-height: 1em; /* Jaga agar teks tidak 'tenggelam' */
   }
 
   /* Munculkan teks format saat kosong */
   .custom-date-input:before {
     content: attr(placeholder);
+    position: absolute;
+    left: 12px;
     width: 100%;
     color: #94a3b8; /* slate-400 */
   }

@@ -7,6 +7,9 @@ export const walletPage = () => ({
   isEditMode: false,
   editId: null,
   transactionCount: 0,
+  totalAsset: 0,
+  totalTransactionsCount: 0,
+  topWallet: '',
 
   newWallet: {
     name: '',
@@ -52,7 +55,9 @@ export const walletPage = () => ({
     const settings = storage.getSettings() || {}
     const rawWallets = settings.wallets || []
     const allTransactions = storage.getTransactions() || []
-    const balances = storage.getBalances(rawWallets, allTransactions).byWallet
+
+    const balanceData = storage.getBalances(rawWallets, allTransactions)
+    const balances = balanceData.byWallet
 
     // Sekarang .map gak akan error karena sumbernya minimal []
     this.wallets = rawWallets.map((w) => {
@@ -64,6 +69,28 @@ export const walletPage = () => ({
         ).length,
       }
     })
+
+    this.totalAsset = balanceData.totalAsset
+
+    const sekarang = new Date()
+    const bulanIni = sekarang.getMonth() // 0-11
+    const tahunIni = sekarang.getFullYear()
+
+    const transaksiBulanIni = allTransactions.filter((t) => {
+      const tDate = new Date(t.date)
+      return tDate.getMonth() === bulanIni && tDate.getFullYear() === tahunIni
+    })
+
+    this.totalTransactionsCount = transaksiBulanIni.length
+
+    if (this.wallets.length > 0) {
+      const top = [...this.wallets].sort(
+        (a, b) => b.currentBalance - a.currentBalance,
+      )[0]
+      this.topWalletName = top.name
+    } else {
+      this.topWalletName = 'No Wallet'
+    }
   },
 
   // Fungsi buat buka modal mode Tambah
@@ -128,7 +155,7 @@ export const walletPage = () => ({
         walletId: walletId,
         category: 'Adjustment',
         notes: `Balance Correction: ${oldName}`,
-        date: new Date().toISOString().split('T')[0],
+        date: storage.formatLocalDate(),
       }
 
       history.unshift(adjustment)
@@ -200,5 +227,9 @@ export const walletPage = () => ({
   selectColor(name) {
     this.newWallet.colorName = name
     this.newWallet.gradient = `from-${name}-400 to-${name}-700`
+  },
+
+  formatNumber(num) {
+    return new Intl.NumberFormat('id-ID').format(num)
   },
 })

@@ -25,11 +25,16 @@ export const expensePage = () => ({
   showFilterModal: false,
 
   // Tanggal Default (YYYY-MM-DD)
-  selectedDate: new Date().toISOString().split('T')[0],
+  selectedDate: storage.formatLocalDate(),
 
   // ----------------- INITIALIZATION & REFRESH DATA -----------------
 
   init() {
+    const urlParams = new URLSearchParams(window.location.search)
+    const dateParam = urlParams.get('date')
+
+    this.selectedDate = dateParam || storage.formatLocalDate()
+
     // 1. Load Master Data (Langsung dari gatekeeper storage)
     const settings = storage.getSettings()
     this.wallets = settings.wallets
@@ -203,7 +208,7 @@ export const expensePage = () => ({
 
     // 2. Single Date (Harian)
     const d = new Date(this.selectedDate)
-    const todayStr = new Date().toISOString().split('T')[0]
+    const todayStr = storage.formatLocalDate()
 
     const fullDate = d.toLocaleDateString('id-ID', optionsLong)
     const dayName = d.toLocaleDateString('id-ID', { weekday: 'long' })
