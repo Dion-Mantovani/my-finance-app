@@ -31,11 +31,43 @@ import WalletCard from '../components/wallet/WalletCard.astro'
       </div>
 
       <div class="relative z-10 flex flex-col items-start">
-        <p
-          class="mb-2 text-[10px] font-bold tracking-[0.2em] uppercase opacity-50"
-        >
-          My Total Assets
-        </p>
+        <div class="mb-2 flex w-full items-center justify-between">
+          <p
+            class="text-[10px] font-bold tracking-[0.2em] uppercase opacity-50"
+          >
+            My Total Assets
+          </p>
+
+          <div class="flex gap-1.5">
+            <button
+              @click="toggleViewMode()"
+              class="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 backdrop-blur-md transition-all hover:bg-white/10 active:scale-95"
+            >
+              <template x-if="viewMode === 'list'">
+                <i class="fa-solid fa-list text-xs text-indigo-300"></i>
+              </template>
+              <template x-if="viewMode === 'card'">
+                <i class="fa-solid fa-table-cells-large text-xs text-indigo-300"
+                ></i>
+              </template>
+            </button>
+
+            <!-- Tombol Edit Order (Taruh di pojok kanan, samping atau bawah toggle view) -->
+            <button
+              @click="toggleEditOrder()"
+              class="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 backdrop-blur-md transition-all hover:bg-white/10 active:scale-95"
+              :class="isReordering ? 'ring-2 ring-emerald-500 bg-emerald-500/20' : ''"
+            >
+              <!-- Ikon dinamis: Panah Atas-Bawah saat normal, Centang saat edit -->
+              <template x-if="!isReordering">
+                <i class="fa-solid fa-sort text-xs text-indigo-300"></i>
+              </template>
+              <template x-if="isReordering">
+                <i class="fa-solid fa-check text-sm text-emerald-400"></i>
+              </template>
+            </button>
+          </div>
+        </div>
 
         <h2 class="text-4xl font-black tracking-tight lg:text-5xl">
           <span class="text-3xl text-white">Rp</span>
@@ -74,7 +106,7 @@ import WalletCard from '../components/wallet/WalletCard.astro'
             </p>
           </div>
 
-          <div class="h-3 w-px bg-white/30"></div>
+          <div class="h-3 w-px bg-white/40"></div>
 
           <div
             class="relative flex cursor-pointer items-center gap-1.5 whitespace-nowrap"
@@ -131,83 +163,159 @@ import WalletCard from '../components/wallet/WalletCard.astro'
       </div>
     </section>
 
-    <!-- <section
-      class="relative mb-6 overflow-hidden rounded-[2.5rem] border-none bg-indigo-950 p-7 text-white shadow-2xl shadow-indigo-100 dark:shadow-none"
-    >
-      <div
-        class="absolute -top-16 -right-16 h-60 w-60 rounded-full bg-indigo-900 opacity-60"
-      >
-      </div>
-      <div
-        class="absolute -bottom-10 -left-10 h-40 w-40 rounded-full bg-indigo-900/50 opacity-40"
-      >
-      </div>
-
-      <div class="relative z-10 flex flex-col items-start text-center">
-        <p
-          class="mb-2 text-[10px] font-bold tracking-[0.2em] uppercase opacity-50"
-        >
-          My Total Assets
-        </p>
-
-        <h2 class="text-4xl font-black tracking-tight lg:text-5xl">
-          <span class="text-white">Rp</span>
-          <span class="font-jakarta" x-text="formatNumber(totalAsset)"></span>
-        </h2>
-
-        <div class="mt-6 flex items-center gap-4">
-          <div class="flex items-center gap-1.5">
-            <i class="fa-solid fa-wallet text-[10px] text-indigo-400"></i>
-            <p
-              class="text-[10px] font-bold tracking-wider text-indigo-200 uppercase"
-            >
-              <span x-text="wallets.length"></span> Wallets
-            </p>
-          </div>
-
-          <div class="h-3 w-px bg-white/30"></div>
-
-          <div class="flex items-center gap-1.5 whitespace-nowrap">
-            <i class="fa-solid fa-star text-[10px] text-amber-400"></i>
-            <p
-              class="text-[10px] font-bold tracking-tighter text-indigo-200 uppercase"
-            >
-              <span x-text="topWalletName"></span>
-            </p>
-          </div>
-
-          <div class="h-3 w-px bg-white/40"></div>
-
-          <div class="flex items-center gap-1.5">
-            <i class="fa-solid fa-chart-line text-[10px] text-emerald-400"></i>
-            <p
-              class="text-[10px] font-bold tracking-wider text-indigo-200 uppercase"
-            >
-              <span x-text="totalTransactionsCount"></span> Acts
-            </p>
-          </div>
-        </div>
-      </div>
-    </section> -->
-
     <!-- WALLETS LIST -->
     <section>
       <div x-cloak class="space-y-6">
         <template x-if="wallets.length > 0">
-          <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
-            <template x-for="wallet in wallets" :key="wallet.id">
-              <div @click="openEditModal(wallet)">
-                <WalletCard />
-              </div>
+          <div
+            class="grid grid-cols-1 md:grid-cols-2"
+            :class="viewMode === 'list' ? 'gap-3' : 'gap-6'"
+          >
+            <template x-if="viewMode === 'card'">
+              <template x-for="wallet in wallets" :key="wallet.id">
+                <div @click="openEditModal(wallet)">
+                  <WalletCard />
+                </div>
+              </template>
             </template>
+
+            <template x-if="viewMode === 'list'">
+              <template x-for="(wallet, index) in tempWallets" :key="wallet.id">
+                <div @click="openEditModal(wallet)">
+                  <div
+                    class="flex items-center justify-between rounded-3xl border border-white/5 bg-white/5 p-4 shadow-sm backdrop-blur-md transition-all hover:bg-white/10 active:scale-[0.98]"
+                  >
+                    <div class="flex items-center gap-4">
+                      <div
+                        class="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 shadow-inner"
+                        :class=`{
+                          'bg-linear-to-br from-blue-400 to-blue-700': wallet.gradient === 'from-blue-400 to-blue-700',
+                          'bg-linear-to-br from-green-400 to-green-700': wallet.gradient === 'from-green-400 to-green-700',
+                          'bg-linear-to-br from-rose-400 to-rose-700': wallet.gradient === 'from-rose-400 to-rose-700',
+                          'bg-linear-to-br from-amber-400 to-amber-700': wallet.gradient === 'from-amber-400 to-amber-700',
+                          'bg-linear-to-br from-indigo-400 to-indigo-700': wallet.gradient === 'from-indigo-400 to-indigo-700',
+                          'bg-linear-to-br from-violet-400 to-violet-700': wallet.gradient === 'from-violet-400 to-violet-700',
+                          'bg-linear-to-br from-cyan-400 to-cyan-700': wallet.gradient === 'from-cyan-400 to-cyan-700',
+                          'bg-linear-to-br from-slate-400 to-slate-700': wallet.gradient === 'from-slate-400 to-slate-700',
+                          'bg-slate-900': !wallet.gradient
+                        }`
+                      >
+                        <i
+                          class="fa-solid text-xl text-white"
+                          :class="wallet.icon || 'fa-wallet'"></i>
+                      </div>
+
+                      <div class="flex flex-col gap-1">
+                        <p
+                          class="text-base font-bold tracking-tight text-indigo-600"
+                          x-text="wallet.name"
+                        >
+                        </p>
+                        <div class="flex items-center gap-1.5 opacity-50">
+                          <i
+                            class="fa-solid fa-receipt text-[8px] text-indigo-300"
+                          ></i>
+                          <p
+                            class="text-[9px] font-black tracking-widest uppercase"
+                            x-text="`${wallet.transactionCount} Activities`"
+                          >
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="flex items-center gap-6 text-right">
+                      <div class="flex items-baseline justify-end gap-1">
+                        <span class="text-[10px] font-bold text-indigo-950/40"
+                          >Rp</span
+                        >
+                        <h4
+                          class="font-jakarta text-base font-black tracking-tight text-indigo-950"
+                          x-show="$store.app.showAmount"
+                          x-text="Number(wallet.currentBalance).toLocaleString('id-ID')"
+                        >
+                        </h4>
+                        <span
+                          class="text-base text-indigo-950"
+                          x-show="!$store.app.showAmount"
+                          x-cloak
+                        >
+                          ••••
+                        </span>
+                      </div>
+
+                      <!-- Tombol Panah (Hanya muncul pas Reordering) -->
+                      <div
+                        x-show="isReordering"
+                        x-transition
+                        class="flex flex-col gap-1"
+                      >
+                        <button
+                          @click.stop="moveUp(index)"
+                          :disabled="index === 0"
+                          class="text-indigo-300 hover:text-white disabled:opacity-20"
+                        >
+                          <i class="fa-solid fa-chevron-up text-[10px]"></i>
+                        </button>
+                        <button
+                          @click.stop="moveDown(index)"
+                          :disabled="index === tempWallets.length - 1"
+                          class="text-indigo-300 hover:text-white disabled:opacity-20"
+                        >
+                          <i class="fa-solid fa-chevron-down text-[10px]"></i>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  <!-- <div
+                    class="flex items-center justify-between rounded-3xl border border-slate-100 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900"
+                  >
+                    <div class="flex items-center gap-3">
+                      <div
+                        :style="`background-color: ${wallet.color}`"
+                        class="flex h-10 w-10 items-center justify-center rounded-xl text-white shadow-sm"
+                      >
+                        <i
+                          :class="wallet.icon || 'fa-solid fa-wallet'"
+                          class="text-sm"></i>
+                      </div>
+                      <div>
+                        <p
+                          class="text-sm font-bold text-slate-700 dark:text-white"
+                          x-text="wallet.name"
+                        >
+                        </p>
+                        <p
+                          class="text-[10px] font-medium tracking-tighter text-slate-400 uppercase"
+                          x-text="`${wallet.transactionCount} Acts`"
+                        >
+                        </p>
+                      </div>
+                    </div>
+                    <div class="text-right">
+                      <p
+                        class="text-sm font-black text-slate-800 dark:text-white"
+                        x-text="formatNumber(wallet.currentBalance)"
+                      >
+                      </p>
+                    </div>
+                  </div> -->
+                </div>
+              </template>
+            </template>
+
             <button
               @click="openAddModal()"
-              class="flex w-full flex-col items-center justify-center gap-3 rounded-4xl border-2 border-dashed border-slate-200 bg-slate-50/50 py-12 text-slate-400 transition-all hover:border-indigo-300 hover:text-indigo-400"
+              class="flex w-full items-center justify-center gap-3 border-2 border-dashed border-slate-200 bg-slate-50/50 text-slate-400 transition-all hover:border-indigo-300 hover:text-indigo-400"
+              :class="viewMode === 'list' ? 'py-4 rounded-3xl' : 'flex-col py-12 rounded-4xl'"
             >
               <div
-                class="flex h-14 w-14 items-center justify-center rounded-full bg-white shadow-sm"
+                class="flex items-center justify-center rounded-full bg-white shadow-sm"
+                :class="viewMode === 'list' ? 'h-8 w-8' : 'h-14 w-14'"
               >
-                <i class="fa-solid fa-plus text-xl"></i>
+                <i
+                  class="fa-solid fa-plus"
+                  :class="viewMode === 'list' ? 'text-base' : 'text-xl'"></i>
               </div>
               <span class="text-xs font-bold tracking-widest uppercase"
                 >Add New Wallet</span

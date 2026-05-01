@@ -9,7 +9,10 @@ export const walletPage = () => ({
   transactionCount: 0,
   totalAsset: 0,
   totalTransactionsCount: 0,
-  topWallet: '',
+  topWalletName: '',
+  tempWallets: [], // Data draft untuk geser-geser
+  isReordering: false,
+  originalViewBeforeEdit: null,
 
   newWallet: {
     name: '',
@@ -18,6 +21,8 @@ export const walletPage = () => ({
     colorName: 'blue',
     gradient: 'from-blue-400 to-blue-700',
   },
+
+  viewMode: localStorage.getItem('DION_WALLET_VIEW_MODE') || 'card',
 
   icons: [
     { name: 'Wallet', val: 'fa-wallet' },
@@ -53,14 +58,15 @@ export const walletPage = () => ({
 
   refreshWallets() {
     const settings = storage.getSettings() || {}
-    const rawWallets = settings.wallets || []
-    const allTransactions = storage.getTransactions() || []
+    // STEP A: Ambil data mentah dan pastikan ada properti 'order'
+    const rawWalletsOrdered = this.ensureWalletOrder(settings.wallets || [])
 
-    const balanceData = storage.getBalances(rawWallets, allTransactions)
+    const allTransactions = storage.getTransactions() || []
+    const balanceData = storage.getBalances(rawWalletsOrdered, allTransactions)
     const balances = balanceData.byWallet
 
-    // Sekarang .map gak akan error karena sumbernya minimal []
-    this.wallets = rawWallets.map((w) => {
+    // STEP B: Map data seperti biasa (pakai rawWallets yang sudah di-order)
+    this.wallets = rawWalletsOrdered.map((w) => {
       return {
         ...w,
         currentBalance: balances[w.id] || 0,
@@ -69,6 +75,11 @@ export const walletPage = () => ({
         ).length,
       }
     })
+
+    // STEP C: Inisialisasi tempWallets untuk mode edit nanti malam
+    if (!this.isReordering) {
+      this.tempWallets = JSON.parse(JSON.stringify(this.wallets))
+    }
 
     this.totalAsset = balanceData.totalAsset
 
@@ -89,8 +100,139 @@ export const walletPage = () => ({
       )[0]
       this.topWalletName = top.name
     } else {
-      this.topWalletName = 'No Wallet'
+      this.topWalletName = '-'
     }
+  },
+
+  ensureWalletOrder(rawWallets) {
+    let needsMigration = false
+
+    // 1. Cek & Tambah Properti Order
+    const migratedData = rawWallets.map((wallet, index) => {
+      if (wallet.order === undefined) {
+        needsMigration = true
+        return { ...wallet, order: index }
+      }
+      return wallet
+    })
+
+    // 2. Simpan jika ada perubahan (Pake setSetting sesuai info lo)
+    if (needsMigration) {
+      const currentSettings = storage.getSettings() || {}
+      currentSettings.wallets = migratedData
+      storage.setSettings(currentSettings)
+    }
+
+    // 3. Kembalikan data mentah yang sudah ada 'order'-nya
+    // Kita urutkan berdasarkan order di sini
+    return migratedData.sort((a, b) => a.order - b.order)
+  },
+
+  toggleEditOrder() {
+    if (this.isReordering) {
+      // --- FASE KELUAR ---
+
+      // 1. Cek apakah urutan ID berubah
+      const currentOrderIds = JSON.stringify(this.tempWallets.map((w) => w.id))
+      const originalOrderIds = JSON.stringify(this.wallets.map((w) => w.id))
+
+      if (currentOrderIds !== originalOrderIds) {
+        // Ada perubahan, tanya user
+        if (confirm('Simpan urutan dompet yang baru?')) {
+          this.saveNewOrder() // Fungsi simpan permanen
+        } else {
+          // User batal, reset tempWallets ke data asli
+          this.tempWallets = JSON.parse(JSON.stringify(this.wallets))
+        }
+      }
+
+      // 2. Kembalikan tampilan ke mode semula (Card atau List)
+      this.viewMode = this.originalViewBeforeEdit
+      this.isReordering = false
+    } else {
+      // --- FASE MASUK ---
+
+      // 1. Catat mode user saat ini
+      this.originalViewBeforeEdit = this.viewMode
+
+      // 2. Paksa pindah ke List agar sorting lebih enak
+      this.viewMode = 'list'
+      this.isReordering = true
+
+      // 3. Siapkan draft urutan (Deep Copy)
+      this.tempWallets = JSON.parse(JSON.stringify(this.wallets))
+    }
+  },
+
+  saveNewOrder() {
+    // 1. Bersihkan data: Hapus properti virtual sebelum simpan
+    const walletsToSave = this.tempWallets.map((wallet) => {
+      // Kita buat copy dan hapus properti yang gak mau disimpan
+      const { currentBalance, transactionCount, ...cleanWallet } = wallet
+
+      // Pastikan order-nya sudah yang terbaru
+      // cleanWallet sekarang cuma berisi properti asli + order
+      return cleanWallet
+    })
+
+    // 2. Update state utama (untuk UI)
+    this.wallets = [...this.tempWallets]
+
+    // 3. Simpan data yang sudah BERSIH ke localStorage
+    const currentSettings = storage.getSettings() || {}
+    currentSettings.wallets = walletsToSave // Pakai yang sudah di-map (walletsToSave)
+    storage.setSettings(currentSettings)
+
+    console.log('Data bersih berhasil disimpan!')
+  },
+
+  // Geser Wallet ke Atas
+  moveUp(index) {
+    if (index > 0) {
+      // 1. Ambil elemen yang mau dipindah
+      const currentItem = this.tempWallets[index]
+      const aboveItem = this.tempWallets[index - 1]
+
+      // 2. Tukar posisi di array tempWallets
+      this.tempWallets[index - 1] = currentItem
+      this.tempWallets[index] = aboveItem
+
+      // 3. Update properti 'order' agar sinkron dengan index baru
+      this.reassignTempOrder()
+    }
+  },
+
+  // Geser Wallet ke Bawah
+  moveDown(index) {
+    if (index < this.tempWallets.length - 1) {
+      // 1. Ambil elemen yang mau dipindah
+      const currentItem = this.tempWallets[index]
+      const belowItem = this.tempWallets[index + 1]
+
+      // 2. Tukar posisi di array
+      this.tempWallets[index + 1] = currentItem
+      this.tempWallets[index] = belowItem
+
+      // 3. Update properti 'order'
+      this.reassignTempOrder()
+    }
+  },
+
+  // Fungsi Helper untuk merapikan angka order di memori
+  reassignTempOrder() {
+    this.tempWallets.forEach((wallet, i) => {
+      wallet.order = i
+    })
+    // Trigger Alpine untuk render ulang dengan spread operator
+    this.tempWallets = [...this.tempWallets]
+  },
+
+  toggleViewMode() {
+    this.viewMode = this.viewMode === 'card' ? 'list' : 'card'
+    localStorage.setItem('DION_WALLET_VIEW_MODE', this.viewMode)
+
+    // Opsional: Kasih feedback haptic/vibrasi singkat kalau di HP
+    // if (navigator.vibrate) navigator.vibrate(10)
   },
 
   // Fungsi buat buka modal mode Tambah
