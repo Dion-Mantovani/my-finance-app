@@ -41,17 +41,17 @@ export const expensePage = () => ({
     this.categories = settings.categories
 
     // 2. Initial Data Load
-    this.refreshAll()
+    this.refreshData()
 
     // 3. Storage Listener (Sync antar Tab)
     window.addEventListener('storage', (event) => {
       if (event.key === 'DION_TRANSACTIONS' || event.key === 'DION_SETTINGS') {
-        this.refreshAll()
+        this.refreshData()
       }
     })
   },
 
-  refreshAll() {
+  refreshData() {
     const allRawData = storage.getTransactions() || []
     const query = this.searchQuery.toLowerCase()
     const isRange = this.startDate && this.endDate
@@ -178,13 +178,13 @@ export const expensePage = () => ({
     this.endDate = ''
     this.searchQuery = ''
     this.showFilterModal = false
-    this.refreshAll()
+    this.refreshData()
   },
 
   applyFilter() {
     this.showFilterModal = false
     this.$nextTick(() => {
-      this.refreshAll()
+      this.refreshData()
     })
   },
 
@@ -241,6 +241,6 @@ export const expensePage = () => ({
     this.startDate = ''
     this.endDate = ''
 
-    this.refreshAll()
+    this.refreshData()
   },
 })

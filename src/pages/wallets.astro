@@ -73,7 +73,7 @@ import WalletCard from '../components/wallet/WalletCard.astro'
           <span class="text-3xl text-white">Rp</span>
           <span
             class="font-jakarta"
-            x-text="formatNumber(totalAsset)"
+            x-text="totalAsset"
             x-show="$store.app.showAmount"></span>
           <span class="font-jakarta" x-show="!$store.app.showAmount" x-cloak
             >••••••••</span
@@ -267,39 +267,6 @@ import WalletCard from '../components/wallet/WalletCard.astro'
                       </div>
                     </div>
                   </div>
-                  <!-- <div
-                    class="flex items-center justify-between rounded-3xl border border-slate-100 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900"
-                  >
-                    <div class="flex items-center gap-3">
-                      <div
-                        :style="`background-color: ${wallet.color}`"
-                        class="flex h-10 w-10 items-center justify-center rounded-xl text-white shadow-sm"
-                      >
-                        <i
-                          :class="wallet.icon || 'fa-solid fa-wallet'"
-                          class="text-sm"></i>
-                      </div>
-                      <div>
-                        <p
-                          class="text-sm font-bold text-slate-700 dark:text-white"
-                          x-text="wallet.name"
-                        >
-                        </p>
-                        <p
-                          class="text-[10px] font-medium tracking-tighter text-slate-400 uppercase"
-                          x-text="`${wallet.transactionCount} Acts`"
-                        >
-                        </p>
-                      </div>
-                    </div>
-                    <div class="text-right">
-                      <p
-                        class="text-sm font-black text-slate-800 dark:text-white"
-                        x-text="formatNumber(wallet.currentBalance)"
-                      >
-                      </p>
-                    </div>
-                  </div> -->
                 </div>
               </template>
             </template>

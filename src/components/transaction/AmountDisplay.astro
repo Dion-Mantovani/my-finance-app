@@ -2,29 +2,25 @@
 // src/components/transaction/AmountDisplay.astro
 ---
 
-<section class="py-4 text-center shrink-0">
+<section class="shrink-0 py-4 text-center">
   <div class="flex items-center justify-center gap-1">
     <span class="text-xl font-bold text-slate-300">Rp</span>
 
     <input
       x-ref="amountInput"
       inputmode="numeric"
-      type="number"
-      x-model="amount"
+      type="text"
+      :value="storage.formatCurrency(amount)"
+      @input=`
+        let rawValue = $el.value.replace(/\D/g, '');
+        amount = rawValue;
+        $el.value = storage.formatCurrency(rawValue);
+      `
       @keydown.enter.prevent="$refs.noteInput.focus()"
-      x-effect="$el.style.width = (($el.value.length + 1) * 22) + 'px'"
-      class="text-4xl font-black font-jakarta tracking-tight text-[#1D1E20] bg-transparent border-none outline-none text-center focus:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+      class="font-jakarta w-full max-w-75 border-none bg-transparent text-center text-4xl font-black tracking-tight text-[#1D1E20] outline-none focus:ring-0"
       placeholder="0"
-      style="transition: width 0.1s ease;"
     />
   </div>
 </section>
 
-<style>
-  /* Biar inputnya gak ada panah up-down bawaan browser */
-  input[type='number'] {
-    -moz-appearance: textfield;
-    /* min-width: 50px; */
-    min-width: 300px;
-  }
-</style>
+<style></style>

@@ -73,7 +73,7 @@ export const storage = {
     _store(SETTINGS_KEY, data)
   },
 
-  // 4. -------------- TRANSACTIONS ACTIONS (Get & Set) --------------
+  //  -------------- 4. TRANSACTIONS ACTIONS (Get & Set) --------------
   getTransactions() {
     return _fetch(TRANSACTIONS_KEY) || []
   },
@@ -89,7 +89,7 @@ export const storage = {
     _store(PRIVACY_KEY, value)
   },
 
-  // ---------------------------- HELPER ----------------------------
+  // ---------------------------- INTERNAL HELPERS ----------------------------
   _migrateTransactionCategories(oldCat, newCat) {
     const transactions = this.getTransactions()
 
@@ -145,11 +145,9 @@ export const storage = {
   // ---------------------- STYLE UTILITIES ----------------------
 
   formatCurrency(num) {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-    }).format(num || 0)
+    const value = Number(String(num).replace(/[^-0-9]/g, '')) || 0
+
+    return new Intl.NumberFormat('id-ID').format(value)
   },
 
   formatDateTitle(dateStr) {

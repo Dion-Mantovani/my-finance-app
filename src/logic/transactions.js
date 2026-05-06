@@ -2,6 +2,8 @@ import { storage } from '../utils/storage.js'
 
 export const transactionForm = () => ({
   // ----------------------- LOCAL STATE -----------------------
+  // Data Storage (Cache)
+  storage,
   type: '',
   amount: '',
   date: '',
@@ -208,7 +210,7 @@ export const transactionForm = () => ({
 
   // ----------------------- USER ACTION  -----------------------
 
-  async confirmDelete() {
+  confirmDelete() {
     if (!confirm('Yakin mau hapus transaksi ini, Bro?')) return
 
     // 1. Ambil data terbaru
@@ -226,7 +228,7 @@ export const transactionForm = () => ({
     window.location.href = `/expense?date=${this.date}`
   },
 
-  async saveRecord(isAddMore = false) {
+  saveRecord(isAddMore = false) {
     // 1. Guard Clauses (Validasi Berlapis)
     if (!this.amount || this.amount === '0') alert('Nominal harus diisi!')
     if (!this.walletSourceId) alert('Pilih rekening dulu!')
@@ -241,7 +243,8 @@ export const transactionForm = () => ({
 
     // 2. Data Preparation
     // Pastikan amount jadi Number dan notes punya fallback
-    const finalAmount = Number(this.amount) || 0
+    const cleanAmount = String(this.amount).replace(/\D/g, '')
+    const finalAmount = Number(cleanAmount) || 0
     const finalNotes =
       this.type === 'transfer' && !this.notes?.trim() ? 'Transfer' : this.notes
 

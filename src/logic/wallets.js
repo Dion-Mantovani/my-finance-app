@@ -1,19 +1,27 @@
 import { storage } from '../utils/storage.js'
 
 export const walletPage = () => ({
+  // ----------------------- LOCAL STATE -----------------------
+  // Data Storage (Cache)
   storage,
   wallets: [],
+  tempWallets: [], // Draft untuk sorting
+
+  // UI Status / Flags
   isModalOpen: false,
   isEditMode: false,
+  isReordering: false, //
   editId: null,
-  transactionCount: 0,
+  viewMode: localStorage.getItem('DION_WALLET_VIEW_MODE') || 'card',
+  originalViewBeforeEdit: null, //
+
+  // Summary Data (Hasil Kalkulasi)
   totalAsset: 0,
+  transactionCount: 0,
   totalTransactionsCount: 0,
   topWalletName: '',
-  tempWallets: [], // Data draft untuk geser-geser
-  isReordering: false,
-  originalViewBeforeEdit: null,
 
+  // Form State (Untuk Reset yang Lebih Mudah)
   newWallet: {
     name: '',
     balance: 0,
@@ -22,8 +30,7 @@ export const walletPage = () => ({
     gradient: 'from-blue-400 to-blue-700',
   },
 
-  viewMode: localStorage.getItem('DION_WALLET_VIEW_MODE') || 'card',
-
+  // Konstanta (Data Statis)
   icons: [
     { name: 'Wallet', val: 'fa-wallet' },
     { name: 'Bank', val: 'fa-building-columns' },
@@ -34,7 +41,6 @@ export const walletPage = () => ({
     { name: 'Gold', val: 'fa-coins' },
     { name: 'Phone', val: 'fa-mobile-screen-button' },
   ],
-
   colors: [
     { name: 'blue', bg: 'bg-blue-500' },
     { name: 'green', bg: 'bg-green-500' },
@@ -46,65 +52,47 @@ export const walletPage = () => ({
     { name: 'slate', bg: 'bg-slate-500' },
   ],
 
+  // ----------------- INITIALIZATION & REFRESH DATA -----------------
+
   init() {
-    this.refreshWallets()
+    this.refreshData()
 
     window.addEventListener('storage', (e) => {
       if (['DION_SETTINGS', 'DION_TRANSACTIONS'].includes(e.key)) {
-        this.refreshWallets()
+        this.refreshData()
       }
     })
   },
 
-  refreshWallets() {
+  refreshData() {
     const settings = storage.getSettings() || {}
-    // STEP A: Ambil data mentah dan pastikan ada properti 'order'
-    const rawWalletsOrdered = this.ensureWalletOrder(settings.wallets || [])
-
     const allTransactions = storage.getTransactions() || []
-    const balanceData = storage.getBalances(rawWalletsOrdered, allTransactions)
-    const balances = balanceData.byWallet
 
-    // STEP B: Map data seperti biasa (pakai rawWallets yang sudah di-order)
-    this.wallets = rawWalletsOrdered.map((w) => {
-      return {
-        ...w,
-        currentBalance: balances[w.id] || 0,
-        transactionCount: allTransactions.filter(
-          (t) => t.walletId === w.id || t.walletIdDest === w.id,
-        ).length,
-      }
-    })
+    // STEP A: Ambil data mentah & pastikan urutan (Order)
+    const rawWalletsOrdered = this._ensureWalletOrder(settings.wallets || [])
+    const balanceData = storage.getBalances(rawWalletsOrdered, allTransactions)
+
+    // STEP B: Mapping data wallet dengan saldo dan jumlah transaksi
+    this.wallets = this._mapWalletData(
+      rawWalletsOrdered,
+      allTransactions,
+      balanceData.byWallet,
+    )
 
     // STEP C: Inisialisasi tempWallets untuk mode edit nanti malam
     if (!this.isReordering) {
       this.tempWallets = JSON.parse(JSON.stringify(this.wallets))
     }
 
-    this.totalAsset = balanceData.totalAsset
-
-    const sekarang = new Date()
-    const bulanIni = sekarang.getMonth() // 0-11
-    const tahunIni = sekarang.getFullYear()
-
-    const transaksiBulanIni = allTransactions.filter((t) => {
-      const tDate = new Date(t.date)
-      return tDate.getMonth() === bulanIni && tDate.getFullYear() === tahunIni
-    })
-
-    this.totalTransactionsCount = transaksiBulanIni.length
-
-    if (this.wallets.length > 0) {
-      const top = [...this.wallets].sort(
-        (a, b) => b.currentBalance - a.currentBalance,
-      )[0]
-      this.topWalletName = top.name
-    } else {
-      this.topWalletName = '-'
-    }
+    // STEP D: Update Global Summary (Aset, Transaksi Bulan Ini, Top Wallet)
+    this.totalAsset = storage.formatCurrency(balanceData.totalAsset)
+    this.totalTransactionsCount =
+      this._calculateMonthlyTransactions(allTransactions)
+    this.topWalletName = this._getTopWalletName()
   },
 
-  ensureWalletOrder(rawWallets) {
+  // ----------------------- INTERNAL HELPERS -----------------------
+  _ensureWalletOrder(rawWallets) {
     let needsMigration = false
 
     // 1. Cek & Tambah Properti Order
@@ -124,8 +112,136 @@ export const walletPage = () => ({
     }
 
     // 3. Kembalikan data mentah yang sudah ada 'order'-nya
-    // Kita urutkan berdasarkan order di sini
     return migratedData.sort((a, b) => a.order - b.order)
+  },
+
+  _mapWalletData(rawWallets, allTransactions, balances) {
+    return rawWallets.map((w) => ({
+      ...w,
+      currentBalance: balances[w.id] || 0,
+      transactionCount: allTransactions.filter(
+        (t) => t.walletId === w.id || t.walletIdDest === w.id,
+      ).length,
+    }))
+  },
+
+  _calculateMonthlyTransactions(allTransactions) {
+    const sekarang = new Date()
+    const bulanIni = sekarang.getMonth()
+    const tahunIni = sekarang.getFullYear()
+
+    return allTransactions.filter((t) => {
+      const tDate = new Date(t.date)
+      return tDate.getMonth() === bulanIni && tDate.getFullYear() === tahunIni
+    }).length
+  },
+
+  _getTopWalletName() {
+    if (this.wallets.length === 0) return '-'
+
+    const top = [...this.wallets].sort(
+      (a, b) => b.currentBalance - a.currentBalance,
+    )[0]
+
+    return top ? top.name : '-'
+  },
+
+  _applyBalanceCorrection(walletId, oldName, currentBalance) {
+    const targetBalance = Number(this.newWallet.balance)
+
+    if (targetBalance !== currentBalance) {
+      const diff = targetBalance - currentBalance
+
+      const history = storage.getTransactions()
+
+      const adjustment = {
+        id: 'adj-' + Date.now(),
+        type: diff > 0 ? 'income' : 'expense',
+        amount: Math.abs(diff),
+        walletId: walletId,
+        category: 'Adjustment',
+        notes: `Balance Correction: ${oldName}`,
+        date: storage.formatLocalDate(),
+      }
+
+      history.unshift(adjustment)
+      storage.setTransactions(history)
+    }
+  },
+
+  _handleUpdateWallet(wallets) {
+    const index = wallets.findIndex((w) => w.id === this.editId)
+    if (index === -1) return
+
+    const oldWallet = wallets[index]
+    const currentInSystem =
+      this.wallets.find((w) => w.id === this.editId)?.currentBalance || 0
+
+    // Jalankan koreksi saldo jika ada perbedaan input vs system
+    this._applyBalanceCorrection(this.editId, oldWallet.name, currentInSystem)
+
+    // Update properti fisik wallet
+    wallets[index] = {
+      ...oldWallet,
+      name: this.newWallet.name,
+      icon: this.newWallet.icon,
+      gradient: this.newWallet.gradient,
+    }
+  },
+
+  _handleCreateWallet(wallets) {
+    wallets.push({
+      id: 'w' + Date.now(),
+      name: this.newWallet.name,
+      balance: Number(this.newWallet.balance), // Saldo awal permanen
+      icon: this.newWallet.icon,
+      gradient: this.newWallet.gradient,
+      order: wallets.length, // Langsung kasih order biar gak perlu migrasi lagi
+    })
+  },
+
+  _resetForm() {
+    this.newWallet = {
+      name: '',
+      balance: 0,
+      icon: 'fa-wallet',
+      colorName: 'blue',
+      gradient: 'from-blue-400 to-blue-700',
+    }
+    this.editId = null
+  },
+
+  // ------------------- 📌 UI HELPERS / COMPUTED LOGIC -------------------
+  openAddModal() {
+    this.isEditMode = false
+    this._resetForm()
+    this.isModalOpen = true
+  },
+
+  openEditModal(wallet) {
+    this.isEditMode = true
+    this.editId = wallet.id
+
+    this.newWallet = {
+      name: wallet.name,
+      balance: wallet.currentBalance,
+      icon: wallet.icon,
+      colorName: wallet.colorName,
+      gradient: wallet.gradient,
+    }
+
+    this.transactionCount = wallet.transactionCount
+    this.isModalOpen = true
+  },
+
+  closeModal() {
+    this.isModalOpen = false
+    this.isEditMode = false
+    this._resetForm()
+  },
+
+  formatNumber(num) {
+    return new Intl.NumberFormat('id-ID').format(Number(num) || 0)
   },
 
   toggleEditOrder() {
@@ -164,6 +280,44 @@ export const walletPage = () => ({
     }
   },
 
+  moveUp(index) {
+    if (index > 0) {
+      // 1. Ambil elemen yang mau dipindah
+      const currentItem = this.tempWallets[index]
+      const aboveItem = this.tempWallets[index - 1]
+
+      // 2. Tukar posisi di array tempWallets
+      this.tempWallets[index - 1] = currentItem
+      this.tempWallets[index] = aboveItem
+
+      // 3. Update properti 'order' agar sinkron dengan index baru
+      this.reassignTempOrder()
+    }
+  },
+
+  moveDown(index) {
+    if (index < this.tempWallets.length - 1) {
+      // 1. Ambil elemen yang mau dipindah
+      const currentItem = this.tempWallets[index]
+      const belowItem = this.tempWallets[index + 1]
+
+      // 2. Tukar posisi di array
+      this.tempWallets[index + 1] = currentItem
+      this.tempWallets[index] = belowItem
+
+      // 3. Update properti 'order'
+      this.reassignTempOrder()
+    }
+  },
+
+  reassignTempOrder() {
+    this.tempWallets.forEach((wallet, i) => {
+      wallet.order = i
+    })
+    // Trigger Alpine untuk render ulang dengan spread operator
+    this.tempWallets = [...this.tempWallets]
+  },
+
   saveNewOrder() {
     // 1. Bersihkan data: Hapus properti virtual sebelum simpan
     const walletsToSave = this.tempWallets.map((wallet) => {
@@ -182,49 +336,6 @@ export const walletPage = () => ({
     const currentSettings = storage.getSettings() || {}
     currentSettings.wallets = walletsToSave // Pakai yang sudah di-map (walletsToSave)
     storage.setSettings(currentSettings)
-
-    console.log('Data bersih berhasil disimpan!')
-  },
-
-  // Geser Wallet ke Atas
-  moveUp(index) {
-    if (index > 0) {
-      // 1. Ambil elemen yang mau dipindah
-      const currentItem = this.tempWallets[index]
-      const aboveItem = this.tempWallets[index - 1]
-
-      // 2. Tukar posisi di array tempWallets
-      this.tempWallets[index - 1] = currentItem
-      this.tempWallets[index] = aboveItem
-
-      // 3. Update properti 'order' agar sinkron dengan index baru
-      this.reassignTempOrder()
-    }
-  },
-
-  // Geser Wallet ke Bawah
-  moveDown(index) {
-    if (index < this.tempWallets.length - 1) {
-      // 1. Ambil elemen yang mau dipindah
-      const currentItem = this.tempWallets[index]
-      const belowItem = this.tempWallets[index + 1]
-
-      // 2. Tukar posisi di array
-      this.tempWallets[index + 1] = currentItem
-      this.tempWallets[index] = belowItem
-
-      // 3. Update properti 'order'
-      this.reassignTempOrder()
-    }
-  },
-
-  // Fungsi Helper untuk merapikan angka order di memori
-  reassignTempOrder() {
-    this.tempWallets.forEach((wallet, i) => {
-      wallet.order = i
-    })
-    // Trigger Alpine untuk render ulang dengan spread operator
-    this.tempWallets = [...this.tempWallets]
   },
 
   toggleViewMode() {
@@ -235,114 +346,27 @@ export const walletPage = () => ({
     // if (navigator.vibrate) navigator.vibrate(10)
   },
 
-  // Fungsi buat buka modal mode Tambah
-  openAddModal() {
-    this.isEditMode = false
-    this.editId = null
-    this.newWallet = {
-      name: '',
-      balance: 0,
-      icon: 'fa-wallet',
-      colorName: 'blue',
-      gradient: 'from-blue-400 to-blue-700',
-    }
-    this.isModalOpen = true
+  selectColor(name) {
+    this.newWallet.colorName = name
+    this.newWallet.gradient = `from-${name}-400 to-${name}-700`
   },
 
-  // Fungsi buat buka modal mode Detail/Edit
-  openEditModal(wallet) {
-    this.isEditMode = true
-    this.editId = wallet.id
-
-    // Isi form dengan data wallet yang diklik
-    this.newWallet = {
-      name: wallet.name,
-      balance: wallet.currentBalance, // Kita tampilkan saldo saat ini
-      icon: wallet.icon,
-      colorName: wallet.colorName,
-      gradient: wallet.gradient,
-    }
-
-    // Cek jumlah transaksi buat Guard Delete nanti
-    this.transactionCount = wallet.transactionCount
-    this.isModalOpen = true
-  },
-
-  // Fungsi pembantu buat reset modal
-  closeModal() {
-    this.isModalOpen = false
-    this.isEditMode = false
-    this.editId = null
-    this.newWallet = {
-      name: '',
-      balance: 0,
-      icon: 'fa-wallet',
-      colorName: 'blue',
-      gradient: 'from-blue-400 to-blue-700',
-    }
-  },
-
-  _applyBalanceCorrection(walletId, oldName, currentBalance) {
-    const targetBalance = Number(this.newWallet.balance)
-
-    if (targetBalance !== currentBalance) {
-      const diff = targetBalance - currentBalance
-
-      const history = storage.getTransactions()
-
-      const adjustment = {
-        id: 'adj-' + Date.now(),
-        type: diff > 0 ? 'income' : 'expense',
-        amount: Math.abs(diff),
-        walletId: walletId,
-        category: 'Adjustment',
-        notes: `Balance Correction: ${oldName}`,
-        date: storage.formatLocalDate(),
-      }
-
-      history.unshift(adjustment)
-      storage.setTransactions(history)
-    }
-  },
-
+  // ----------------------- USER ACTION  -----------------------
   saveWallet() {
     if (!this.newWallet.name) return alert('Nama wallet wajib diisi!')
 
     const settings = storage.getSettings()
-    settings.wallets = settings.wallets || []
+    settings.wallets ??= []
 
     if (this.isEditMode) {
-      // --- MODE EDIT & KOREKSI SALDO ---
-      const index = settings.wallets.findIndex((w) => w.id === this.editId)
-      if (index === -1) return
-
-      const oldWallet = settings.wallets[index]
-      const currentInSystem =
-        this.wallets.find((w) => w.id === this.editId)?.currentBalance || 0
-
-      this._applyBalanceCorrection(this.editId, oldWallet.name, currentInSystem)
-
-      // Update data profil wallet-nya
-      settings.wallets[index] = {
-        ...oldWallet,
-        name: this.newWallet.name,
-        icon: this.newWallet.icon,
-        gradient: this.newWallet.gradient,
-      }
+      this._handleUpdateWallet(settings.wallets)
     } else {
-      // --- MODE TAMBAH BARU ---
-      settings.wallets.push({
-        id: 'w' + Date.now(),
-        name: this.newWallet.name,
-        balance: Number(this.newWallet.balance), // Ini jadi saldo awal
-        icon: this.newWallet.icon,
-        gradient: this.newWallet.gradient,
-      })
+      this._handleCreateWallet(settings.wallets)
     }
 
     storage.setSettings(settings)
     this.closeModal()
-    this.refreshWallets()
+    this.refreshData()
   },
 
   deleteWallet() {
@@ -356,22 +380,13 @@ export const walletPage = () => ({
 
     if (confirm('Are you sure you want to delete this wallet?')) {
       const settings = storage.getSettings()
-      settings.wallets = (settings.wallets || []).filter(
+      settings.wallets = (settings.wallets ??= []).filter(
         (w) => w.id !== this.editId,
       )
 
       storage.setSettings(settings)
       this.closeModal()
-      this.refreshWallets()
+      this.refreshData()
     }
-  },
-
-  selectColor(name) {
-    this.newWallet.colorName = name
-    this.newWallet.gradient = `from-${name}-400 to-${name}-700`
-  },
-
-  formatNumber(num) {
-    return new Intl.NumberFormat('id-ID').format(num)
   },
 })

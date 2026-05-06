@@ -2,16 +2,17 @@
 // src/components/transactions/TransactionHeader.astro
 ---
 
-<header class="px-3 py-6 flex items-center justify-between shrink-0">
+<header class="flex shrink-0 items-center justify-between px-3 py-6">
   <div class="w-9"></div>
   <h2
     class="text-lg font-bold text-slate-800"
     x-text="isEditMode ? 'Detail Transaction' : 'Add Transaction'"
   >
   </h2>
+  <!-- href="/expense" -->
   <a
-    href="/expense"
-    class="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-50 text-slate-400"
+    :href="`/expense?date=${date}`"
+    class="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-50 text-slate-400"
   >
     <i class="fa-solid fa-xmark text-sm"></i>
   </a>
