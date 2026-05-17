@@ -31,7 +31,7 @@ export const statsPage = () => ({
     const transactions = storage.getTransactions() || []
 
     // 1. Panggil Parser (Akan kita buat fungsinya di bawah)
-    const parsedData = this.parseTransactionData(transactions, this.timeFrame)
+    const parsedData = this._parseTransactionData(transactions, this.timeFrame)
 
     // 2. Update State untuk Summary & Kategori
     this.summary = parsedData.summary
@@ -39,10 +39,10 @@ export const statsPage = () => ({
     this.insight = parsedData.insight
 
     // 3. Update Grafik dengan Best Practice (Destroy & Recreate)
-    this.renderChart(parsedData.chartSeries, parsedData.chartLabels)
+    this._renderChart(parsedData.chartSeries, parsedData.chartLabels)
   },
 
-  parseTransactionData(transactions, frame) {
+  _parseTransactionData(transactions, frame) {
     const now = new Date()
     const currentMonth = now.getMonth()
     const currentYear = now.getFullYear()
@@ -119,7 +119,7 @@ export const statsPage = () => ({
       .sort((a, b) => b.amount - a.amount)
 
     // --- 5. GENERATE DATA CHART (Trend 3 Periode) ---
-    const chartData = this.generateChartData(transactions, frame)
+    const chartData = this._generateChartData(transactions, frame)
 
     const savingsRate = totalIn > 0 ? ((totalIn - totalOut) / totalIn) * 100 : 0
 
@@ -136,16 +136,25 @@ export const statsPage = () => ({
     }
   },
 
-  generateChartData(transactions, frame) {
+  _generateChartData(transactions, frame) {
     const now = new Date()
     let labels = []
     let incomeData = []
     let expenseData = []
 
     if (frame === 'Weekly') {
-      labels = ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5']
-      incomeData = [0, 0, 0, 0, 0]
-      expenseData = [0, 0, 0, 0, 0]
+      labels = ['W1', 'W2', 'W3', 'W4', 'W5', 'W6']
+      incomeData = [0, 0, 0, 0, 0, 0]
+      expenseData = [0, 0, 0, 0, 0, 0]
+
+      // Ambil tahu tanggal 1 di bulan aktif jatuh di hari apa (0 = Minggu, 1 = Senin, dst)
+      const firstDayInstance = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        1,
+      ).getDay()
+      // Ubah urutan hari agar Senin = 1, Selasa = 2 ... Minggu = 7
+      const firstDayOfWeek = firstDayInstance + 1
 
       transactions.forEach((t) => {
         const d = new Date(t.date)
@@ -153,8 +162,15 @@ export const statsPage = () => ({
           d.getMonth() === now.getMonth() &&
           d.getFullYear() === now.getFullYear()
         ) {
-          const day = d.getDate()
-          const idx = Math.min(Math.floor((day - 1) / 7), 4)
+          const dayOfMonth = d.getDate()
+
+          // RUMUS KALENDER MURNI:
+          // Memotong minggu secara otomatis begitu melewati hari Minggu (masuk Senin)
+          const weekNum = Math.ceil((dayOfMonth + firstDayOfWeek - 1) / 7)
+
+          // Map weekNum (1-5) ke index array (0-4)
+          const idx = Math.min(weekNum - 1, 5)
+
           const amt = Number(t.amount) || 0
           if (t.type === 'income') incomeData[idx] += amt
           else if (t.type === 'expense') expenseData[idx] += amt
@@ -185,7 +201,7 @@ export const statsPage = () => ({
         )
       }
     } else if (frame === 'Yearly') {
-      for (let i = 2; i >= 0; i--) {
+      for (let i = 3; i >= 0; i--) {
         const targetYear = now.getFullYear() - i
         labels.push(targetYear.toString())
 
@@ -212,6 +228,103 @@ export const statsPage = () => ({
       ],
       labels,
     }
+  },
+
+  _renderChart(series, labels) {
+    if (this.chart) this.chart.destroy()
+
+    const isWeekly = this.timeFrame === 'Weekly'
+
+    const options = {
+      series: series,
+      chart: {
+        type: isWeekly ? 'bar' : 'area',
+        // type: 'area',
+        height: 250,
+        toolbar: { show: false },
+        zoom: { enabled: false },
+        fontFamily: 'Plus Jakarta Sans, sans-serif',
+        // Menghilangkan shadow di chart container jika ada
+        dropShadow: { enabled: false },
+      },
+      plotOptions: {
+        bar: {
+          borderRadius: 6,
+          columnWidth: '60%',
+          borderRadiusApplication: 'around',
+          // Memastikan tidak ada shadow bawaan dari plot
+          dataLabels: { position: 'top' },
+        },
+      },
+      colors: ['#34d399', '#FF2056'],
+      dataLabels: { enabled: false },
+      stroke: {
+        curve: 'smooth',
+        // width: 3,
+        width: isWeekly ? 0 : 3,
+      },
+      // BAGIAN INI YANG DIUBAH JADI SOLID
+      fill: {
+        // Untuk Area Chart, kita pake gradient tapi opacity-nya diturunin
+        type: isWeekly ? 'solid' : 'gradient',
+        // type: 'gradient',
+        gradient: {
+          shadeIntensity: 1,
+          opacityFrom: isWeekly ? 1 : 0.5, // Turunin dari 0.4 ke 0.3 biar lebih tembus pandang
+          // opacityFrom: 0.5,
+          opacityTo: 0, // Biar menghilang halus ke bawah
+          stops: [0, 90, 100],
+        },
+        // opacity: 0.4,
+        opacity: isWeekly ? 1 : 0.4,
+      },
+
+      // Memastikan tidak ada efek shadow/glow pada garis atau batang
+      states: {
+        hover: {
+          filter: { type: 'none' },
+        },
+        active: {
+          filter: { type: 'none' },
+        },
+      },
+      grid: {
+        borderColor: '#334155',
+        strokeDashArray: 4,
+        padding: {
+          left: 15,
+          right: 15,
+        },
+      },
+      xaxis: {
+        type: 'category',
+        categories: labels,
+        labels: {
+          show: true,
+          style: {
+            colors: '#94a3b8',
+            fontSize: '11px',
+            fontWeight: 600,
+          },
+        },
+        axisBorder: { show: false },
+        axisTicks: { show: false },
+      },
+      yaxis: { show: false },
+      legend: { show: false },
+      tooltip: {
+        theme: 'dark',
+        x: { show: true },
+        // Menghilangkan drop shadow di tooltip agar konsisten
+        style: { fontSize: '12px' },
+        y: {
+          formatter: (val) => 'Rp ' + val.toLocaleString('id-ID'),
+        },
+      },
+    }
+
+    this.chart = new ApexCharts(this.$refs.chartCanvas, options)
+    this.chart.render()
   },
 
   generateSmartInsight(totalIn, totalOut, savingsRate) {
@@ -357,94 +470,5 @@ export const statsPage = () => ({
       Freelance: 'bg-sky-500',
     }
     return colors[cat] || 'bg-slate-400'
-  },
-
-  renderChart(series, labels) {
-    if (this.chart) this.chart.destroy()
-
-    const isWeekly = this.timeFrame === 'Weekly'
-    const chartType = isWeekly ? 'bar' : 'area'
-
-    const options = {
-      series: series,
-      chart: {
-        type: chartType,
-        height: 250,
-        toolbar: { show: false },
-        zoom: { enabled: false },
-        fontFamily: 'Plus Jakarta Sans, sans-serif',
-        // Menghilangkan shadow di chart container jika ada
-        dropShadow: { enabled: false },
-      },
-      plotOptions: {
-        bar: {
-          borderRadius: 6,
-          columnWidth: '60%',
-          borderRadiusApplication: 'around',
-          // Memastikan tidak ada shadow bawaan dari plot
-          dataLabels: { position: 'top' },
-        },
-      },
-      colors: ['#34d399', '#FF2056'],
-      dataLabels: { enabled: false },
-      stroke: {
-        curve: 'smooth',
-        width: isWeekly ? 0 : 3,
-      },
-      // BAGIAN INI YANG DIUBAH JADI SOLID
-      fill: {
-        // Untuk Area Chart, kita pake gradient tapi opacity-nya diturunin
-        type: isWeekly ? 'solid' : 'gradient',
-        gradient: {
-          shadeIntensity: 1,
-          opacityFrom: isWeekly ? 1 : 0.5, // Turunin dari 0.4 ke 0.3 biar lebih tembus pandang
-          opacityTo: 0, // Biar menghilang halus ke bawah
-          stops: [0, 90, 100],
-        },
-        opacity: isWeekly ? 1 : 0.4,
-      },
-
-      // Memastikan tidak ada efek shadow/glow pada garis atau batang
-      states: {
-        hover: {
-          filter: { type: 'none' },
-        },
-        active: {
-          filter: { type: 'none' },
-        },
-      },
-      grid: {
-        borderColor: '#334155',
-        strokeDashArray: 4,
-        padding: { left: 10, right: 10 },
-      },
-      xaxis: {
-        categories: labels,
-        labels: {
-          show: true,
-          style: {
-            colors: '#94a3b8',
-            fontSize: '11px',
-            fontWeight: 600,
-          },
-        },
-        axisBorder: { show: false },
-        axisTicks: { show: false },
-      },
-      yaxis: { show: false },
-      legend: { show: false },
-      tooltip: {
-        theme: 'dark',
-        x: { show: true },
-        // Menghilangkan drop shadow di tooltip agar konsisten
-        style: { fontSize: '12px' },
-        y: {
-          formatter: (val) => 'Rp ' + val.toLocaleString('id-ID'),
-        },
-      },
-    }
-
-    this.chart = new ApexCharts(this.$refs.chartCanvas, options)
-    this.chart.render()
   },
 })

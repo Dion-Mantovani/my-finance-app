@@ -156,7 +156,7 @@ export const storage = {
     const d = new Date(dateStr)
     const now = new Date()
 
-    const todayStr = now.toISOString().split('T')[0]
+    const todayStr = this.formatLocalDate(now)
 
     const dateFormatted = d.toLocaleDateString('id-ID', {
       day: 'numeric',

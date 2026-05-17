@@ -211,7 +211,7 @@ export const walletPage = () => ({
     this.editId = null
   },
 
-  // ------------------- 📌 UI HELPERS / COMPUTED LOGIC -------------------
+  // ------------------- UI HELPERS / COMPUTED LOGIC -------------------
   openAddModal() {
     this.isEditMode = false
     this._resetForm()
