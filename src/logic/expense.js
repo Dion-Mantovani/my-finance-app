@@ -1,7 +1,9 @@
 import { storage } from '../utils/storage.js'
 
 export const expensePage = () => ({
-  // ----------------------- LOCAL STATE -----------------------
+  /* =========================================================================
+                          1. LOCAL STATE & CONFIGURATION
+  ========================================================================= */
   // Data Storage (Cache)
   storage,
   transactions: [],
@@ -27,8 +29,9 @@ export const expensePage = () => ({
   // Tanggal Default (YYYY-MM-DD)
   selectedDate: storage.formatLocalDate(),
 
-  // ----------------- INITIALIZATION & REFRESH DATA -----------------
-
+  /* =========================================================================
+              2. INITIALIZATION & REFRESH DATA (Core Data Flow)
+  ========================================================================= */
   init() {
     const urlParams = new URLSearchParams(window.location.search)
     const dateParam = urlParams.get('date')
@@ -89,8 +92,9 @@ export const expensePage = () => ({
     this.transactions = filtered
   },
 
-  // ----------------------- INTERNAL HELPERS -----------------------
-
+  /* =========================================================================
+              3. INTERNAL HELPERS (Underscore Prefix - Not DRY)
+  ========================================================================= */
   _calculateSummary(data) {
     // Sekali jalan (single pass) pake reduce untuk hitung keduanya
     const totals = data.reduce(
@@ -158,8 +162,9 @@ export const expensePage = () => ({
     this.groupedTransactions = sortedResult
   },
 
-  // ------------------- UI HELPERS / COMPUTED LOGIC -------------------
-
+  /* =========================================================================
+                        4. UI HELPERS & COMPUTED LOGIC
+  ========================================================================= */
   isFilterActive() {
     return (
       this.filterType !== 'all' ||

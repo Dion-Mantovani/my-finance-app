@@ -3,7 +3,9 @@
  * Pondasi utama untuk manajemen localStorage.
  */
 
-// 1. CONSTANTS (Keys)
+/* =========================================================================
+                            1. CONSTANTS (Keys)
+  ========================================================================= */
 const SETTINGS_KEY = 'DION_SETTINGS'
 const TRANSACTIONS_KEY = 'DION_TRANSACTIONS'
 const PRIVACY_KEY = 'DION_PRIVACY'
@@ -32,7 +34,9 @@ const DEFAULT_SETTINGS = {
   ],
 }
 
-// 2. CORE ENGINE (Internal Helpers) - Urusan JSON & Try-Catch di sini
+/* =========================================================================
+                              2. CORE ENGINE
+  ========================================================================= */
 const _fetch = (key) => {
   try {
     const data = localStorage.getItem(key)
@@ -52,7 +56,9 @@ const _store = (key, data) => {
 }
 
 export const storage = {
-  //  ---------------- 3. SETTINGS ACTIONS (Get & Set) ----------------
+  /* =========================================================================
+                        3. SETTINGS ACTIONS (Get & Set)
+  ========================================================================= */
   getSettings() {
     let settings = _fetch(SETTINGS_KEY) || DEFAULT_SETTINGS
 
@@ -73,7 +79,9 @@ export const storage = {
     _store(SETTINGS_KEY, data)
   },
 
-  //  -------------- 4. TRANSACTIONS ACTIONS (Get & Set) --------------
+  /* =========================================================================
+                      4. TRANSACTIONS ACTIONS (Get & Set)
+  ========================================================================= */
   getTransactions() {
     return _fetch(TRANSACTIONS_KEY) || []
   },
@@ -81,7 +89,9 @@ export const storage = {
     _store(TRANSACTIONS_KEY, data)
   },
 
-  // ---------------- 5. PRIVACY ACTIONS (Get & Set) ----------------
+  /* =========================================================================
+                        5. PRIVACY ACTIONS (Get & Set)
+  ========================================================================= */
   getPrivacy() {
     return _fetch(PRIVACY_KEY)
   },
@@ -89,7 +99,9 @@ export const storage = {
     _store(PRIVACY_KEY, value)
   },
 
-  // ---------------------------- INTERNAL HELPERS ----------------------------
+  /* =========================================================================
+                             6. INTERNAL HELPERS
+  ========================================================================= */
   _migrateTransactionCategories(oldCat, newCat) {
     const transactions = this.getTransactions()
 
@@ -108,7 +120,9 @@ export const storage = {
     }
   },
 
-  // ---------------------- LOGIC UTILITIES ----------------------
+  /* =========================================================================
+                             7. LOGIC UTILITIES
+  ========================================================================= */
   getBalances(wallets = [], transactions = []) {
     const balances = wallets.reduce(
       (acc, wallet) => ({
@@ -142,7 +156,9 @@ export const storage = {
     return { title: 'Good Night', icon: '🌙' }
   },
 
-  // ---------------------- STYLE UTILITIES ----------------------
+  /* =========================================================================
+                             8. STYLE UTILITIES
+  ========================================================================= */
 
   formatCurrency(num) {
     const value = Number(String(num).replace(/[^-0-9]/g, '')) || 0

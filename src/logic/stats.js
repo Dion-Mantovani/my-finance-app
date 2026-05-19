@@ -233,18 +233,14 @@ export const statsPage = () => ({
   _renderChart(series, labels) {
     if (this.chart) this.chart.destroy()
 
-    const isWeekly = this.timeFrame === 'Weekly'
-
     const options = {
       series: series,
       chart: {
-        type: isWeekly ? 'bar' : 'area',
-        // type: 'area',
+        type: 'area',
         height: 250,
         toolbar: { show: false },
         zoom: { enabled: false },
         fontFamily: 'Plus Jakarta Sans, sans-serif',
-        // Menghilangkan shadow di chart container jika ada
         dropShadow: { enabled: false },
       },
       plotOptions: {
@@ -252,7 +248,6 @@ export const statsPage = () => ({
           borderRadius: 6,
           columnWidth: '60%',
           borderRadiusApplication: 'around',
-          // Memastikan tidak ada shadow bawaan dari plot
           dataLabels: { position: 'top' },
         },
       },
@@ -260,23 +255,18 @@ export const statsPage = () => ({
       dataLabels: { enabled: false },
       stroke: {
         curve: 'smooth',
-        // width: 3,
-        width: isWeekly ? 0 : 3,
+        width: 3,
       },
       // BAGIAN INI YANG DIUBAH JADI SOLID
       fill: {
-        // Untuk Area Chart, kita pake gradient tapi opacity-nya diturunin
-        type: isWeekly ? 'solid' : 'gradient',
-        // type: 'gradient',
+        type: 'gradient',
         gradient: {
           shadeIntensity: 1,
-          opacityFrom: isWeekly ? 1 : 0.5, // Turunin dari 0.4 ke 0.3 biar lebih tembus pandang
-          // opacityFrom: 0.5,
+          opacityFrom: 0.5,
           opacityTo: 0, // Biar menghilang halus ke bawah
           stops: [0, 90, 100],
         },
-        // opacity: 0.4,
-        opacity: isWeekly ? 1 : 0.4,
+        opacity: 0.4,
       },
 
       // Memastikan tidak ada efek shadow/glow pada garis atau batang

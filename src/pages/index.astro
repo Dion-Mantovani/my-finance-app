@@ -16,6 +16,7 @@ import EmptyState from '../components/shared/EmptyState.astro'
       x-show="getDailyInsight()"
       x-transition.duration.300ms
       class="relative my-5"
+      x-cloak
     >
       <div
         :class="getDailyInsight()?.type === 'warning' ? 'bg-rose-50/90 border-rose-100 shadow-rose-100/50' : 'bg-indigo-50/90 border-indigo-100 shadow-indigo-100/30'"
@@ -271,7 +272,7 @@ import EmptyState from '../components/shared/EmptyState.astro'
       >
         <template x-if="transactions.length > 0">
           <div class="my-4 space-y-3 px-4">
-            <template x-for="item in transactions.slice(0, 3)" :key="item.id">
+            <template x-for="item in transactions" :key="item.id">
               <TransactionItem />
             </template>
           </div>

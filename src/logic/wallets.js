@@ -1,7 +1,9 @@
 import { storage } from '../utils/storage.js'
 
 export const walletPage = () => ({
-  // ----------------------- LOCAL STATE -----------------------
+  /* =========================================================================
+                          1. LOCAL STATE & CONFIGURATION
+  ========================================================================= */
   // Data Storage (Cache)
   storage,
   wallets: [],
@@ -10,10 +12,10 @@ export const walletPage = () => ({
   // UI Status / Flags
   isModalOpen: false,
   isEditMode: false,
-  isReordering: false, //
+  isReordering: false,
   editId: null,
   viewMode: localStorage.getItem('DION_WALLET_VIEW_MODE') || 'card',
-  originalViewBeforeEdit: null, //
+  originalViewBeforeEdit: null,
 
   // Summary Data (Hasil Kalkulasi)
   totalAsset: 0,
@@ -52,8 +54,9 @@ export const walletPage = () => ({
     { name: 'slate', bg: 'bg-slate-500' },
   ],
 
-  // ----------------- INITIALIZATION & REFRESH DATA -----------------
-
+  /* =========================================================================
+              2. INITIALIZATION & REFRESH DATA (Core Data Flow)
+  ========================================================================= */
   init() {
     this.refreshData()
 
@@ -91,7 +94,9 @@ export const walletPage = () => ({
     this.topWalletName = this._getTopWalletName()
   },
 
-  // ----------------------- INTERNAL HELPERS -----------------------
+  /* =========================================================================
+              3. INTERNAL HELPERS (Underscore Prefix - Not DRY)
+  ========================================================================= */
   _ensureWalletOrder(rawWallets) {
     let needsMigration = false
 
@@ -211,7 +216,9 @@ export const walletPage = () => ({
     this.editId = null
   },
 
-  // ------------------- UI HELPERS / COMPUTED LOGIC -------------------
+  /* =========================================================================
+                        4. UI HELPERS & COMPUTED LOGIC
+  ========================================================================= */
   openAddModal() {
     this.isEditMode = false
     this._resetForm()
@@ -351,7 +358,9 @@ export const walletPage = () => ({
     this.newWallet.gradient = `from-${name}-400 to-${name}-700`
   },
 
-  // ----------------------- USER ACTION  -----------------------
+  /* =========================================================================
+                                5. USER ACTION
+  ========================================================================= */
   saveWallet() {
     if (!this.newWallet.name) return alert('Nama wallet wajib diisi!')
 

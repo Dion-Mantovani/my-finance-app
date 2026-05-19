@@ -25,6 +25,12 @@ export const budgetPage = () => ({
   ],
   newBudget: { category: '', limit: 0 },
 
+  viewMode: localStorage.getItem('DION_BUDGET_VIEW_MODE') || 'card',
+  tempBudgets: [],
+  isEditMode: false,
+  isReordering: false,
+  originalViewBeforeEdit: null,
+
   init() {
     const updateCats = () => {
       const settings = storage.getSettings() || {}
@@ -35,13 +41,13 @@ export const budgetPage = () => ({
     }
 
     updateCats()
-    this.refreshBudget()
+    this.refreshData()
     this.cleanupOldData()
 
     window.addEventListener('storage', (e) => {
       if (['DION_SETTINGS', 'DION_TRANSACTIONS'].includes(e.key)) {
         updateCats()
-        this.refreshBudget()
+        this.refreshData()
       }
     })
   },
@@ -59,7 +65,7 @@ export const budgetPage = () => ({
       this.viewMonth = 11
       this.viewYear--
     }
-    this.refreshBudget()
+    this.refreshData()
   },
 
   nextMonth() {
@@ -68,7 +74,7 @@ export const budgetPage = () => ({
       this.viewMonth = 0
       this.viewYear++
     }
-    this.refreshBudget()
+    this.refreshData()
   },
 
   cleanupOldData() {
@@ -85,13 +91,13 @@ export const budgetPage = () => ({
     storage.setSettings(settings)
   },
 
-  refreshBudget() {
+  refreshData() {
     const settings = storage.getSettings() || {}
     const allBudgets = settings.budgets || []
     const transactions = storage.getTransactions() // Pakai storage.js
 
-    // FILTER berdasarkan viewMonth & viewYear (Bukan new Date() lagi)
-    const monthlyBudgets = allBudgets.filter(
+    const orderedBudgets = this._ensureBudgetOrder(allBudgets)
+    const monthlyBudgets = orderedBudgets.filter(
       (b) => b.month === this.viewMonth && b.year === this.viewYear,
     )
 
@@ -128,18 +134,19 @@ export const budgetPage = () => ({
     const settings = storage.getSettings() || {}
 
     // Clone data: ambil kategori & limit, set bulan & tahun ke view sekarang
-    const duplicatedBudgets = lastBudget.data.map((b) => ({
-      id: 'b-' + Date.now() + Math.random(), // ID baru
+    const duplicatedBudgets = lastBudget.data.map((b, index) => ({
+      id: 'b-' + Date.now() + Math.random().toString(36).substring(2, 7),
       category: b.category,
       limit: b.limit,
       month: this.viewMonth,
       year: this.viewYear,
       color: b.color || 'bg-indigo-600',
+      order: index,
     }))
 
     settings.budgets.push(...duplicatedBudgets)
     storage.setSettings(settings)
-    this.refreshBudget()
+    this.refreshData()
   },
 
   getLastAvailableBudget() {
@@ -195,7 +202,7 @@ export const budgetPage = () => ({
         }
       }
     } else {
-      // Cek duplikat hanya pas tambah baru [cite: 102]
+      // Cek duplikat hanya pas tambah baru
       const isDuplicate = settings.budgets.some(
         (b) =>
           b.category === this.newBudget.category &&
@@ -204,6 +211,11 @@ export const budgetPage = () => ({
       )
       if (isDuplicate) return alert('Budget kategori ini sudah ada!')
 
+      // FIX AKURAT DI SINI: Hitung jumlah budget bulan berjalan LANGSUNG dari database
+      const currentActiveBudgetsCount = settings.budgets.filter(
+        (b) => b.month === viewMonth && b.year === viewYear,
+      )
+
       settings.budgets.push({
         id: 'b-' + Date.now(),
         category: this.newBudget.category,
@@ -211,12 +223,13 @@ export const budgetPage = () => ({
         month: viewMonth,
         year: viewYear,
         color: 'bg-indigo-600',
+        order: currentActiveBudgetsCount.length,
       })
     }
 
     storage.setSettings(settings)
     this.closeModal()
-    this.refreshBudget()
+    this.refreshData()
   },
 
   deleteBudget() {
@@ -229,7 +242,7 @@ export const budgetPage = () => ({
 
     storage.setSettings(settings)
     this.closeModal()
-    this.refreshBudget()
+    this.refreshData()
   },
 
   isCurrentMonth() {
@@ -239,7 +252,7 @@ export const budgetPage = () => ({
     )
   },
 
-  editBudget(budget) {
+  openEditModalBudget(budget) {
     this.isEditMode = true
     this.editId = budget.id
     this.newBudget = {
@@ -254,5 +267,175 @@ export const budgetPage = () => ({
     this.isEditMode = false
     this.editId = null
     this.newBudget = { category: '', limit: 0 }
+  },
+
+  // ==================================
+
+  toggleViewMode() {
+    this.viewMode = this.viewMode === 'card' ? 'list' : 'card'
+    localStorage.setItem('DION_BUDGET_VIEW_MODE', this.viewMode)
+  },
+
+  _ensureBudgetOrder(rawBudgets) {
+    let needsMigration = false
+
+    // 1. FILTER: Pisahkan data khusus bulan aktif & data masa lalu (Archive)
+    const currentMonthBudgets = rawBudgets.filter(
+      (b) => b.month === this.viewMonth && b.year === this.viewYear,
+    )
+    const archiveBudgets = rawBudgets.filter(
+      (b) => !(b.month === this.viewMonth && b.year === this.viewYear),
+    )
+
+    // 2. MIGRASI: Hanya cek dan tambah properti 'order' pada data BULAN AKTIF yang belum punya
+    let activeOrderCounter = 0
+    const migratedActiveData = currentMonthBudgets.map((budget) => {
+      if (budget.order === undefined) {
+        needsMigration = true
+        return { ...budget, order: activeOrderCounter++ }
+      }
+      activeOrderCounter = budget.order + 1
+      return budget
+    })
+
+    // Urutkan data bulan aktif berdasarkan order-nya
+    migratedActiveData.sort((a, b) => a.order - b.order)
+
+    // 3. SIMPAN: Jika ada data baru yang dimigrasi, gabungkan kembali dengan data archive lalu save
+    if (needsMigration) {
+      const currentSettings = storage.getSettings() || {}
+      currentSettings.budgets = [...migratedActiveData, ...archiveBudgets]
+      storage.setSettings(currentSettings)
+    }
+
+    // 4. RETURN: Gabungkan kembali agar state utama 'budgets' di app lo tetep utuh
+    // tapi bagian bulan aktifnya sudah rapi terurut di paling atas/sesuai urutan
+    return [...migratedActiveData, ...archiveBudgets]
+  },
+
+  toggleEditOrder() {
+    // GUARD: Kalau user lagi buka bulan lalu/archive, tombol ini mati total gak bisa diklik
+    if (!this.isCurrentMonth()) return
+
+    if (this.isReordering) {
+      // --- FASE KELUAR ---
+
+      // 1. Cek apakah urutan ID berubah
+      const currentOrderIds = JSON.stringify(this.tempBudgets.map((b) => b.id))
+      const originalOrderIds = JSON.stringify(
+        this.budgets
+          .filter((b) => b.month === this.viewMonth && b.year === this.viewYear)
+          .map((b) => b.id),
+      )
+
+      if (currentOrderIds !== originalOrderIds) {
+        // Ada perubahan, tanya user
+        if (confirm('Simpan urutan kategori budget yang baru?')) {
+          this.saveNewOrder() // Fungsi simpan permanen
+        } else {
+          // User batal, reset tempWallets ke data asli
+          this.tempBudgets = JSON.parse(
+            JSON.stringify(
+              this.budgets.filter(
+                (b) => b.month === this.viewMonth && b.year === this.viewYear,
+              ),
+            ),
+          )
+        }
+      }
+
+      // 2. Kembalikan tampilan ke mode semula (Card atau List)
+      this.viewMode = this.originalViewBeforeEdit
+      this.isReordering = false
+    } else {
+      // --- FASE MASUK ---
+
+      // 1. Catat mode user saat ini
+      this.originalViewBeforeEdit = this.viewMode
+
+      // 2. Paksa pindah ke List agar sorting lebih enak
+      this.viewMode = 'list'
+      this.isReordering = true
+
+      // 3. Siapkan draft urutan (Murni DEEP COPY data bulan aktif saja, data archive ditinggal)
+      this.tempBudgets = JSON.parse(
+        JSON.stringify(
+          this.budgets.filter(
+            (b) => b.month === this.viewMonth && b.year === this.viewYear,
+          ),
+        ),
+      )
+    }
+  },
+
+  moveUp(index) {
+    if (index > 0) {
+      // 1. Ambil elemen kategori budget yang mau dipindah
+      const currentItem = this.tempBudgets[index]
+      const aboveItem = this.tempBudgets[index - 1]
+
+      // 2. Tukar posisi di array tempBudgets
+      this.tempBudgets[index - 1] = currentItem
+      this.tempBudgets[index] = aboveItem
+
+      // 3. Update properti 'order' agar sinkron dengan urutan index array baru
+      this.reassignTempOrder()
+    }
+  },
+
+  moveDown(index) {
+    if (index < this.tempBudgets.length - 1) {
+      // 1. Ambil elemen kategori budget yang mau dipindah
+      const currentItem = this.tempBudgets[index]
+      const belowItem = this.tempBudgets[index + 1]
+
+      // 2. Tukar posisi di array tempBudgets
+      this.tempBudgets[index + 1] = currentItem
+      this.tempBudgets[index] = belowItem
+
+      // 3. Update properti 'order' agar sinkron dengan urutan index array baru
+      this.reassignTempOrder()
+    }
+  },
+
+  reassignTempOrder() {
+    this.tempBudgets.forEach((budget, i) => {
+      budget.order = i
+    })
+    // Trigger Alpine untuk render ulang dengan spread operator
+    this.tempBudgets = [...this.tempBudgets]
+  },
+
+  saveNewOrder() {
+    // 1. Bersihkan data virtual jika ada (Sesuai taktik wallet lo)
+    // Kalau di budget lo gak ada properti hitungan dinamis yang aneh-aneh, copy biasa aja udah cukup.
+    const activeBudgetsToSave = this.tempBudgets.map((budget) => {
+      // Misal lo ada properti temp/virtual, bisa di-destructuring di sini.
+      // Kalau gak ada, return { ...budget } aja murni biar aman.
+      const { used, remaining, percentage, isOver, ...cleanBudget } = budget
+      return cleanBudget
+    })
+
+    // 2. Ambil data database utuh saat ini untuk memisahkan data Archive
+    const currentSettings = storage.getSettings() || {}
+    const allRawBudgets = currentSettings.budgets || []
+
+    // Filter untuk mengamankan data masa lalu (Archive) agar TIDAK TERHAPUS
+    const archiveBudgets = allRawBudgets.filter(
+      (b) => !(b.month === this.viewMonth && b.year === this.viewYear),
+    )
+
+    // 3. GABUNGKAN: Data bulan aktif yang baru diacak + data archive masa lalu
+    const finalBudgetsToSave = [...activeBudgetsToSave, ...archiveBudgets]
+
+    // 4. Update state utama aplikasi (biar UI langsung merespons secara live)
+    // Kita urutkan state utama berdasarkan data yang baru disave
+    this.budgets = [...finalBudgetsToSave]
+
+    // 5. Simpan permanen ke localStorage
+    currentSettings.budgets = finalBudgetsToSave
+    storage.setSettings(currentSettings)
+
+    this.refreshData()
   },
 })

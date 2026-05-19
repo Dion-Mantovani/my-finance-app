@@ -1,7 +1,7 @@
 ---
 import MainLayout from '../layouts/MainLayout.astro'
 import EmptyState from '../components/shared/EmptyState.astro'
-import BudgetCard from '../components/wallet/BudgetCard.astro'
+import BudgetCard from '../components/budget/BudgetCard.astro'
 ---
 
 <MainLayout title="My Wallets">
@@ -17,7 +17,7 @@ import BudgetCard from '../components/wallet/BudgetCard.astro'
     </header>
 
     <!-- TOGGLE SWITCH -->
-    <section class="mb-8 flex items-center justify-center gap-6">
+    <section class="mb-4 flex items-center justify-center gap-6">
       <button
         @click="prevMonth()"
         :disabled="isAtLimit()"
@@ -55,65 +55,116 @@ import BudgetCard from '../components/wallet/BudgetCard.astro'
     <!-- MASTER MONTHLY BUDGET -->
     <template x-if="budgets.length !== 0">
       <section
-        class="relative mb-10 overflow-hidden rounded-4xl bg-[#1D1E20] p-8 text-white shadow-2xl"
+        class="relative mb-6 overflow-hidden rounded-4xl border border-indigo-900 bg-indigo-950 p-5 text-white shadow-md shadow-slate-100/5"
       >
         <div
-          class="absolute top-0 right-0 -mt-10 -mr-10 h-32 w-32 rounded-full bg-indigo-500/20 blur-3xl"
+          class="absolute -top-16 -right-16 h-60 w-60 rounded-full bg-indigo-900 opacity-60"
+        >
+        </div>
+        <div
+          class="absolute -bottom-10 -left-10 h-40 w-40 rounded-full bg-indigo-900/50 opacity-40"
         >
         </div>
 
         <div class="relative z-10">
-          <div class="flex items-center justify-between">
-            <p
-              class="text-[10px] font-black tracking-[0.2em] text-indigo-300 uppercase"
-            >
-              Master Monthly Budget
-            </p>
-            <template x-if="!isCurrentMonth()">
-              <div
-                class="rounded-full border border-white/30 bg-indigo-500/70 px-3 py-1 backdrop-blur-md"
+          <div class="mb-3 flex items-center justify-between">
+            <div>
+              <p
+                class="text-[11px] font-bold tracking-widest uppercase opacity-60"
               >
-                <span
-                  class="flex items-center justify-center text-[8px] font-black tracking-[0.2em] text-white uppercase"
-                  >Archive</span
+                Master Monthly Budget
+              </p>
+            </div>
+
+            <div class="flex items-center gap-1.5">
+              <template x-if="!isCurrentMonth()">
+                <div
+                  class="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 shadow-sm backdrop-blur-md"
                 >
-              </div>
-            </template>
+                  <i class="fa-solid fa-box-archive text-[10px] text-indigo-300"
+                  ></i>
+                  <span
+                    class="text-[9px] font-black tracking-widest text-white uppercase"
+                  >
+                    Archive
+                  </span>
+                </div>
+              </template>
+
+              <template x-if="isCurrentMonth()">
+                <div class="flex gap-1.5">
+                  <button
+                    @click="toggleViewMode()"
+                    class="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 backdrop-blur-md transition-all hover:bg-white/10 active:scale-95"
+                    title="Toggle View Mode"
+                  >
+                    <template x-if="viewMode === 'list'">
+                      <i class="fa-solid fa-list text-xs text-indigo-300"></i>
+                    </template>
+                    <template x-if="viewMode === 'card'">
+                      <i
+                        class="fa-solid fa-table-cells-large text-xs text-indigo-300"
+                      ></i>
+                    </template>
+                  </button>
+
+                  <button
+                    @click="toggleEditOrder()"
+                    class="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 backdrop-blur-md transition-all hover:bg-white/10 active:scale-95"
+                    title="Edit Order"
+                    :class="isReordering ? 'ring-2 ring-emerald-500 bg-emerald-500/20' : ''"
+                  >
+                    <template x-if="!isReordering">
+                      <i class="fa-solid fa-sort text-xs text-indigo-300"></i>
+                    </template>
+                    <template x-if="isReordering">
+                      <i class="fa-solid fa-check text-sm text-emerald-400"></i>
+                    </template>
+                  </button>
+                </div>
+              </template>
+            </div>
           </div>
 
-          <div class="mt-2 mb-6 flex items-end justify-between">
+          <div class="mb-4 flex items-end justify-between">
             <div>
-              <h2 class="text-3xl font-black">
-                Rp <span
+              <h2 class="text-3xl font-extrabold tracking-tight lg:text-4xl">
+                Rp
+                <span
                   x-show="$store.app.showAmount"
                   x-text="Number(budgets.reduce((a, b) => a + (b.used || 0), 0)).toLocaleString('id-ID')"
                 ></span>
-                <span x-show="!$store.app.showAmount" x-cloak>••••••</span>
+                <span x-show="!$store.app.showAmount" x-cloak>••••••••</span>
               </h2>
-              <p class="text-[10px] font-bold text-slate-400">
-                Total Spent of Rp <span
+
+              <p class="mt-1 mb-0 text-[11px] font-bold text-indigo-200/60">
+                Total Spent of Rp
+                <span
                   x-show="$store.app.showAmount"
                   x-text="Number(budgets.reduce((a, b) => a + b.limit, 0)).toLocaleString('id-ID')"
                 ></span>
-                <span x-show="!$store.app.showAmount" x-cloak>••••••</span>
+                <span x-show="!$store.app.showAmount">••••••</span>
               </p>
             </div>
-            <div class="text-right">
+
+            <div class="pb-1 text-right">
               <span
-                class="text-2xl font-black text-indigo-400"
-                x-text="Math.round((budgets.reduce((a, b) => a + b.used, 0) / budgets.reduce((a, b) => a + b.limit, 0)) * 100) + '%' || 0 + '%'"
+                class="text-2xl font-black text-indigo-300"
+                x-text="(Math.round((budgets.reduce((a, b) => a + b.used, 0) / budgets.reduce((a, b) => a + b.limit, 0)) * 100) || 0) + '%'"
               >
               </span>
             </div>
           </div>
 
-          <div
-            class="h-4 w-full overflow-hidden rounded-full border border-white/5 bg-white/10"
-          >
+          <div class="mt-2 border-t border-white/10 pt-4">
             <div
-              class="h-full bg-linear-to-r from-indigo-500 to-purple-500 transition-all duration-1000"
-              :style="`width: ${(budgets.reduce((a, b) => a + b.used, 0) / budgets.reduce((a, b) => a + b.limit, 0)) * 100}%`"
+              class="h-2 w-full overflow-hidden rounded-full border border-white/5 bg-white/10 shadow-inner"
             >
+              <div
+                class="h-full rounded-full bg-linear-to-r from-indigo-500 to-rose-400 transition-all duration-1000 ease-out"
+                :style="`width: ${(budgets.reduce((a, b) => a + b.used, 0) / budgets.reduce((a, b) => a + b.limit, 0)) * 100}%`"
+              >
+              </div>
             </div>
           </div>
         </div>
@@ -124,25 +175,146 @@ import BudgetCard from '../components/wallet/BudgetCard.astro'
     <section>
       <div x-cloak class="space-y-6">
         <template x-if="budgets.length > 0">
-          <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
-            <template x-for="budget in budgets" :key="budget.id">
-              <div
-                @click="isCurrentMonth() ? editBudget(budget) : null"
-                :class="!isCurrentMonth() ? 'cursor-default' : 'cursor-pointer active:scale-[0.98]'"
-                class="transition-transform"
-              >
-                <BudgetCard />
-              </div>
+          <div
+            class="grid grid-cols-1 md:grid-cols-2"
+            :class="viewMode === 'list' ? 'gap-3' : 'gap-6'"
+          >
+            <template x-if="viewMode === 'card'">
+              <template x-for="budget in budgets" :key="budget.id">
+                <div
+                  @click="isCurrentMonth() ? openEditModalBudget(budget) : null"
+                  :class="!isCurrentMonth() ? 'cursor-default' : 'cursor-pointer active:scale-[0.98]'"
+                  class="transition-transform"
+                >
+                  <BudgetCard />
+                </div>
+              </template>
             </template>
+
+            <template x-if="viewMode === 'list'">
+              <template
+                x-for="(budget, index) in (isReordering ? tempBudgets : budgets)"
+                :key="budget.id"
+              >
+                <div
+                  @click="isCurrentMonth() ? openEditModalBudget(budget) : null"
+                  :class="!isCurrentMonth() ? 'cursor-default' : 'cursor-pointer active:scale-[0.98]'"
+                >
+                  <div
+                    class="group relative flex h-20 items-center justify-between gap-4 overflow-hidden rounded-3xl border border-slate-100 bg-white px-4 py-2 shadow-xs transition-all duration-300 hover:shadow-md hover:shadow-slate-100/50"
+                  >
+                    <div class="w-1/3 min-w-30 shrink-0">
+                      <h4
+                        class="text-base font-bold tracking-tight text-[#1D1E20] transition-colors group-hover:text-indigo-600"
+                        x-text="budget.category"
+                      >
+                      </h4>
+                      <p
+                        class="mt-0.5 flex items-center gap-1.5 text-[9px] font-black tracking-widest uppercase opacity-50"
+                      >
+                        <i class="fa-solid fa-flag text-[8px] text-indigo-300"
+                        ></i>
+                        <span
+                          x-show="$store.app.showAmount"
+                          x-text="'Rp ' + Number(budget.limit).toLocaleString('id-ID')"
+                        ></span>
+                        <span x-show="!$store.app.showAmount">••••••</span>
+                      </p>
+                    </div>
+
+                    <div class="flex w-full flex-col justify-center">
+                      <div class="mb-0.5 text-center">
+                        <span
+                          class="text-[9px] font-black tracking-tight"
+                          :class=`{
+                          'text-indigo-600': budget.percentage <= 70,
+                          'text-amber-500': budget.percentage > 70 && budget.percentage <= 90,
+                          'text-rose-600': budget.percentage > 90
+                        }`
+                          x-text="Math.round(budget.percentage) + '%'"></span>
+                      </div>
+
+                      <div
+                        class="h-1.5 w-full overflow-hidden rounded-full bg-slate-100 p-px"
+                      >
+                        <div
+                          class="h-full rounded-full transition-all duration-1000 ease-out"
+                          :class=`{
+                          'bg-indigo-600': budget.percentage <= 70,
+                          'bg-amber-400': budget.percentage > 70 && budget.percentage <= 90,
+                          'bg-rose-500': budget.percentage > 90
+                        }`
+                          :style="`width: ${budget.percentage}%`"
+                        >
+                        </div>
+                      </div>
+                    </div>
+
+                    <div
+                      class="flex w-1/3 min-w-27.5 shrink-0 items-center justify-center gap-6 text-right"
+                    >
+                      <span
+                        class="text-xs font-black tracking-tight"
+                        :class=`
+                        budget.isOver ? 'text-rose-600' : 'text-emerald-600'
+                      `
+                      >
+                        <p
+                          class="mt-0.5 text-[8px] font-bold tracking-wide text-slate-400 uppercase"
+                        >
+                          <span x-show="!budget.isOver">Remaining</span>
+                          <span x-show="budget.isOver" class="text-rose-400"
+                            >Over Budget</span
+                          >
+                        </p>
+
+                        <span
+                          x-show="$store.app.showAmount"
+                          x-text="'Rp ' + Number(budget.remaining).toLocaleString('id-ID')"
+                        ></span>
+                        <span x-show="!$store.app.showAmount">••••••</span>
+                      </span>
+
+                      <!-- Tombol Panah (Hanya muncul pas Reordering) -->
+                      <div
+                        x-show="isReordering && isCurrentMonth()"
+                        x-transition
+                        class="flex flex-col gap-1"
+                      >
+                        <button
+                          @click.stop="moveUp(index)"
+                          :disabled="index === 0"
+                          class="text-indigo-300 hover:text-white disabled:opacity-20"
+                        >
+                          <i class="fa-solid fa-chevron-up text-[10px]"></i>
+                        </button>
+                        <button
+                          @click.stop="moveDown(index)"
+                          :disabled="index === tempBudgets.length - 1"
+                          class="text-indigo-300 hover:text-white disabled:opacity-20"
+                        >
+                          <i class="fa-solid fa-chevron-down text-[10px]"></i>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </template>
+            </template>
+
             <template x-if="isCurrentMonth()">
               <button
                 @click="isEditMode = false; isBudgetModalOpen = true"
-                class="flex w-full flex-col items-center justify-center gap-3 rounded-4xl border-2 border-dashed border-slate-200 bg-slate-50/50 py-12 text-slate-400 transition-all hover:border-indigo-300 hover:text-indigo-400"
+                class="flex w-full items-center justify-center gap-3 border-2 border-dashed border-slate-200 bg-slate-50/50 text-slate-400 transition-all hover:border-indigo-300 hover:text-indigo-400"
+                :class="viewMode === 'list' ? 'py-4 rounded-3xl' : 'flex-col py-12 rounded-4xl'"
               >
                 <div
-                  class="flex h-14 w-14 items-center justify-center rounded-full bg-white shadow-sm"
+                  class="flex items-center justify-center rounded-full bg-white shadow-sm"
+                  :class="viewMode === 'list' ? 'h-8 w-8' : 'h-14 w-14'"
                 >
-                  <i class="fa-solid fa-plus text-xl"></i>
+                  <i
+                    class="fa-solid fa-plus"
+                    :class="viewMode === 'list' ? 'text-base' : 'text-xl'"></i>
                 </div>
                 <span class="text-xs font-bold tracking-widest uppercase"
                   >Set New Budget</span

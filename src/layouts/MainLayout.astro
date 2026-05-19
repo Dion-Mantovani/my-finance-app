@@ -26,12 +26,10 @@ const shouldShowNavigation = !hideNavigationPaths.includes(currentPath)
   <body
     class="color-app-bg color-app-text font-jakarta min-h-screen overflow-x-hidden"
   >
-    <!-- x-data="{ showAmount: localStorage.getItem('showAmount') !== 'false' }"
-    x-init="$watch('showAmount', value => localStorage.setItem('showAmount', value))" -->
     <div class="flex">
       {shouldShowNavigation && <Navigation name="Dion Mantovani" />}
       <div class="flex-1">
-        <main class="mx-auto max-w-5xl px-6 py-8 md:py-12">
+        <main class="mx-auto max-w-5xl px-6 py-4 md:py-12">
           <slot />
         </main>
       </div>

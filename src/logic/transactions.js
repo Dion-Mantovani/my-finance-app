@@ -1,7 +1,9 @@
 import { storage } from '../utils/storage.js'
 
 export const transactionForm = () => ({
-  // ----------------------- LOCAL STATE -----------------------
+  /* =========================================================================
+                          1. LOCAL STATE & CONFIGURATION
+  ========================================================================= */
   // Data Storage (Cache)
   storage,
   type: '',
@@ -36,8 +38,9 @@ export const transactionForm = () => ({
   isEditMode: false,
   editId: null,
 
-  // ----------------------- INITIALIZATION -----------------------
-
+  /* =========================================================================
+              2. INITIALIZATION & REFRESH DATA (Core Data Flow)
+  ========================================================================= */
   init() {
     // 1. Load Master Data (Pake standar baru kita)
     const settings = storage.getSettings()
@@ -61,8 +64,9 @@ export const transactionForm = () => ({
     }
   },
 
-  // ----------------------- INTERNAL HELPERS -----------------------
-
+  /* =========================================================================
+              3. INTERNAL HELPERS (Underscore Prefix - Not DRY)
+  ========================================================================= */
   _initEditMode(id) {
     const data = storage.getTransactions().find((t) => t.id == id)
     if (!data) return (window.location.href = '/expense')
@@ -116,8 +120,10 @@ export const transactionForm = () => ({
     // AUTO FOCUS (Balik ke input nominal)
     this.$refs.amountInput?.focus()
   },
-  // ----------------------- UI HELPERS / COMPUTED LOGIC -----------------------
 
+  /* =========================================================================
+                        4. UI HELPERS & COMPUTED LOGIC
+  ========================================================================= */
   handleKey(e, list, mode) {
     if (!list.length) return
 
@@ -208,8 +214,9 @@ export const transactionForm = () => ({
     }, 3000)
   },
 
-  // ----------------------- USER ACTION  -----------------------
-
+  /* =========================================================================
+                                5. USER ACTION
+  ========================================================================= */
   confirmDelete() {
     if (!confirm('Yakin mau hapus transaksi ini, Bro?')) return
 
