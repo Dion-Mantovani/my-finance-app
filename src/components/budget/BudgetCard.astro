@@ -3,6 +3,126 @@
 ---
 
 <div
+  class="group relative overflow-hidden rounded-4xl border border-slate-100 bg-white p-6 shadow-sm transition-all duration-300 hover:shadow-md hover:shadow-slate-100/50"
+>
+  <div class="mb-3 flex items-center justify-between gap-4">
+    <div class="flex items-center gap-3">
+      <div
+        class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 transition-all duration-300 group-hover:scale-110"
+        :class=`{
+          'text-indigo-600': budget.percentage <= 70,
+          'text-amber-500': budget.percentage > 70 && budget.percentage <= 90,
+          'text-rose-600': budget.percentage > 90
+        }`
+      >
+        <i
+          class="fa-solid text-sm"
+          :class="storage.getCategoryIcon(budget.category)"></i>
+      </div>
+
+      <h4
+        class="text-base font-black tracking-tight text-[#1D1E20] transition-colors group-hover:text-indigo-600"
+        x-text="budget.category"
+      >
+      </h4>
+    </div>
+
+    <template x-if="budget.isOver">
+      <span
+        class="animate-pulse rounded-full border border-rose-100 bg-rose-50 px-2.5 py-0.5 text-[9px] font-black tracking-wider text-rose-600 uppercase"
+      >
+        Overbudget
+      </span>
+    </template>
+  </div>
+
+  <div class="mb-2">
+    <p class="text-[10px] font-bold tracking-widest text-slate-400 uppercase">
+      Sisa Anggaran
+    </p>
+    <div class="mt-0.5 flex items-baseline gap-1">
+      <h2
+        class="text-2xl font-black tracking-tight transition-all duration-300"
+        :class="budget.isOver ? 'text-rose-600' : 'text-emerald-600'"
+      >
+        <span
+          x-show="$store.app.showAmount"
+          x-text="'Rp ' + Number(budget.remaining).toLocaleString('id-ID')"
+        ></span>
+        <span x-show="!$store.app.showAmount" x-cloak>••••••</span>
+      </h2>
+    </div>
+    <div class="flex justify-between">
+      <p
+        class="mt-1 text-[10px] font-bold tracking-wide uppercase"
+        :class="budget.isOver ? 'text-rose-400' : 'text-slate-400'"
+        x-text="budget.isOver ? 'Anggaran melewati batas maksimal!' : 'Kondisi keuangan aman'"
+      >
+      </p>
+
+      <div class="flex justify-end">
+        <span
+          class="text-[10px] font-black tracking-tight"
+          :class=`{
+          'text-indigo-600': budget.percentage <= 70,
+          'text-amber-500': budget.percentage > 70 && budget.percentage <= 90,
+          'text-rose-600': budget.percentage > 90
+        }`
+          x-text="Math.round(budget.percentage) + '%'"></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="space-y-3">
+    <div class="space-y-1.5">
+      <div
+        class="h-2.5 w-full overflow-hidden rounded-full border border-slate-100 bg-slate-100/80 p-px"
+      >
+        <div
+          class="h-full rounded-full transition-all duration-1000 ease-out"
+          :class=`{
+          'bg-indigo-600': budget.percentage <= 70,
+          'bg-amber-400': budget.percentage > 70 && budget.percentage <= 90,
+          'bg-rose-500': budget.percentage > 90
+        }`
+          :style="`width: ${budget.percentage}%`"
+        >
+        </div>
+      </div>
+    </div>
+
+    <div
+      class="flex items-center justify-between border-t border-slate-100 pt-3 text-[10px] font-bold uppercase"
+    >
+      <div class="flex flex-col gap-0.5">
+        <span class="tracking-wider text-slate-400">Limit Budget</span>
+        <span class="tracking-tight text-slate-700">
+          <span
+            x-show="$store.app.showAmount"
+            x-text="'Rp ' + Number(budget.limit).toLocaleString('id-ID')"
+          ></span>
+          <span x-show="!$store.app.showAmount">••••••</span>
+        </span>
+      </div>
+
+      <div class="flex flex-col items-end gap-0.5">
+        <span class="tracking-wider text-slate-400">Terpakai</span>
+        <span
+          class="tracking-tight"
+          :class="budget.percentage > 90 ? 'text-rose-600' : 'text-indigo-600'"
+        >
+          <span
+            x-show="$store.app.showAmount"
+            x-text="'Rp ' + Number(budget.used || 0).toLocaleString('id-ID')"
+          ></span>
+          <span x-show="!$store.app.showAmount">•••</span>
+        </span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- <div
   class="group relative overflow-hidden rounded-4xl border border-slate-100 bg-white p-5 shadow-sm transition-all duration-300 hover:shadow-md hover:shadow-slate-100/50"
 >
   <div class="mb-3 flex items-start justify-between gap-2">
@@ -80,79 +200,6 @@
       Overbudget by
       <span
         class="non-italic font-extrabold"
-        x-text="'Rp ' + Number(budget.used - budget.limit).toLocaleString('id-ID')"
-      ></span>!
-    </p>
-  </div>
-</div>
-
-<!-- <div
-  class="group relative overflow-hidden rounded-[2.5rem] border border-slate-100 bg-white p-6 shadow-sm"
->
-  <div class="mb-4 flex items-start justify-between">
-    <div>
-      <h4 class="text-lg font-black text-[#1D1E20]" x-text="budget.category">
-      </h4>
-      <p class="text-[10px] font-bold tracking-widest text-slate-400 uppercase">
-        Monthly Limit
-      </p>
-    </div>
-    <div class="text-right">
-      <span
-        x-show="$store.app.showAmount"
-        class="text-xs font-black text-[#1D1E20]"
-        x-text="'Rp ' + Number(budget.limit).toLocaleString('id-ID')"></span>
-      <span x-show="!$store.app.showAmount" x-cloak>••••••</span>
-    </div>
-  </div>
-
-  <div class="space-y-3">
-    <div
-      class="flex justify-between text-[10px] font-bold tracking-widest uppercase"
-    >
-      <span class="text-slate-400"
-        >Spent: <span
-          x-show="$store.app.showAmount"
-          :class="budget.percentage > 90 ? 'text-rose-500' : 'text-slate-600'"
-          x-text="'Rp ' + Number(budget.used).toLocaleString('id-ID')"></span>
-        <span x-show="!$store.app.showAmount" x-cloak>••••••</span>
-      </span>
-      <span
-        :class=`{
-          'text-indigo-600': budget.percentage <= 70,
-          'text-amber-500': budget.percentage > 70 && budget.percentage <= 90,
-          'text-rose-600': budget.percentage > 90
-        }`
-        x-text="Math.round(budget.percentage) + '%'"></span>
-    </div>
-
-    <div class="h-4 w-full overflow-hidden rounded-full bg-slate-100">
-      <div
-        class="h-full rounded-full transition-all duration-1000 ease-out"
-        :class=`{
-          'bg-indigo-600': budget.percentage <= 70,
-          'bg-amber-400': budget.percentage > 70 && budget.percentage <= 90,
-          'bg-rose-500': budget.percentage > 90
-        }`
-        :style="`width: ${budget.percentage}%`"
-      >
-      </div>
-    </div>
-
-    <p
-      class="text-[9px] font-medium text-slate-400 italic"
-      x-show="!budget.isOver"
-    >
-      You have <span
-        x-show="$store.app.showAmount"
-        class="font-bold text-emerald-600"
-        x-text="'Rp ' + Number(budget.remaining).toLocaleString('id-ID')"
-      ></span>
-      <span x-show="!$store.app.showAmount" x-cloak>••••••</span>
-      left for this month.
-    </p>
-    <p class="text-[9px] font-bold text-rose-600 italic" x-show="budget.isOver">
-      Overbudget by <span
         x-text="'Rp ' + Number(budget.used - budget.limit).toLocaleString('id-ID')"
       ></span>!
     </p>

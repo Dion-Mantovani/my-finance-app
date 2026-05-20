@@ -18,7 +18,7 @@ import WalletCard from '../components/wallet/WalletCard.astro'
 
     <!-- Balance Card -->
     <section
-      class="relative mb-6 overflow-hidden rounded-4xl border-none bg-indigo-950 p-7 text-white shadow-2xl shadow-indigo-100 dark:shadow-none"
+      class="relative mb-6 overflow-hidden rounded-4xl border-none bg-indigo-950 p-5 text-white shadow-2xl shadow-indigo-100 dark:shadow-none"
       x-data="{ activeTip: null }"
       @click.away="activeTip = null"
     >
@@ -70,7 +70,7 @@ import WalletCard from '../components/wallet/WalletCard.astro'
           </div>
         </div>
 
-        <h2 class="text-3xl font-black tracking-tight lg:text-5xl">
+        <h2 class="mb-2 text-3xl font-black tracking-tight lg:text-5xl">
           Rp
           <span
             class="font-jakarta"
@@ -81,7 +81,9 @@ import WalletCard from '../components/wallet/WalletCard.astro'
           >
         </h2>
 
-        <div class="mt-6 flex items-center gap-4">
+        <div
+          class="mt-2 flex w-full items-center gap-4 border-t border-white/10 pt-4"
+        >
           <div
             class="relative flex cursor-pointer items-center gap-1.5"
             @click.stop="activeTip = activeTip === 'wallet' ? null : 'wallet'"

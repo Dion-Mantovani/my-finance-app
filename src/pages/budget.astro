@@ -126,7 +126,7 @@ import BudgetCard from '../components/budget/BudgetCard.astro'
             </div>
           </div>
 
-          <div class="mb-4 flex items-end justify-between">
+          <div class="mb-3 flex items-end justify-between">
             <div>
               <h2 class="text-3xl font-extrabold tracking-tight lg:text-4xl">
                 Rp
@@ -136,34 +136,38 @@ import BudgetCard from '../components/budget/BudgetCard.astro'
                 ></span>
                 <span x-show="!$store.app.showAmount" x-cloak>••••••••</span>
               </h2>
-
-              <p class="mt-1 mb-0 text-[11px] font-bold text-indigo-200/60">
-                Total Spent of Rp
-                <span
-                  x-show="$store.app.showAmount"
-                  x-text="Number(budgets.reduce((a, b) => a + b.limit, 0)).toLocaleString('id-ID')"
-                ></span>
-                <span x-show="!$store.app.showAmount">••••••</span>
-              </p>
-            </div>
-
-            <div class="pb-1 text-right">
-              <span
-                class="text-2xl font-black text-indigo-300"
-                x-text="(Math.round((budgets.reduce((a, b) => a + b.used, 0) / budgets.reduce((a, b) => a + b.limit, 0)) * 100) || 0) + '%'"
-              >
-              </span>
             </div>
           </div>
 
-          <div class="mt-2 border-t border-white/10 pt-4">
-            <div
-              class="h-2 w-full overflow-hidden rounded-full border border-white/5 bg-white/10 shadow-inner"
-            >
+          <div class="border-t border-white/10 pt-2">
+            <div>
+              <div class="mb-2 flex items-start justify-between">
+                <p
+                  class="mt-1 text-[11px] font-bold tracking-widest uppercase opacity-60"
+                >
+                  Budget Limit :
+                  <span
+                    x-show="$store.app.showAmount"
+                    x-text="Number(budgets.reduce((a, b) => a + b.limit, 0)).toLocaleString('id-ID')"
+                  ></span>
+                  <span x-show="!$store.app.showAmount">••••••</span>
+                </p>
+
+                <span
+                  class="text-2xl font-black text-indigo-300"
+                  x-text="(Math.round((budgets.reduce((a, b) => a + b.used, 0) / budgets.reduce((a, b) => a + b.limit, 0)) * 100) || 0) + '%'"
+                >
+                </span>
+              </div>
+
               <div
-                class="h-full rounded-full bg-linear-to-r from-indigo-500 to-rose-400 transition-all duration-1000 ease-out"
-                :style="`width: ${(budgets.reduce((a, b) => a + b.used, 0) / budgets.reduce((a, b) => a + b.limit, 0)) * 100}%`"
+                class="h-2 w-full overflow-hidden rounded-full border border-white/5 bg-white/10 shadow-inner"
               >
+                <div
+                  class="h-full rounded-full bg-linear-to-r from-indigo-500 to-rose-400 transition-all duration-1000 ease-out"
+                  :style="`width: ${(budgets.reduce((a, b) => a + b.used, 0) / budgets.reduce((a, b) => a + b.limit, 0)) * 100}%`"
+                >
+                </div>
               </div>
             </div>
           </div>
@@ -204,11 +208,26 @@ import BudgetCard from '../components/budget/BudgetCard.astro'
                     class="group relative flex h-20 items-center justify-between gap-4 overflow-hidden rounded-3xl border border-slate-100 bg-white px-4 py-2 shadow-xs transition-all duration-300 hover:shadow-md hover:shadow-slate-100/50"
                   >
                     <div class="w-1/3 min-w-30 shrink-0">
-                      <h4
-                        class="text-base font-bold tracking-tight text-[#1D1E20] transition-colors group-hover:text-indigo-600"
-                        x-text="budget.category"
-                      >
-                      </h4>
+                      <div class="flex items-center gap-3">
+                        <div
+                          class="flex shrink-0 items-center justify-center rounded-xl transition-all duration-300 group-hover:scale-110"
+                          :class=`{
+                            'text-indigo-600': budget.percentage <= 70,
+                            'text-amber-500': budget.percentage > 70 && budget.percentage <= 90,
+                            'text-rose-600': budget.percentage > 90
+                          }`
+                        >
+                          <i
+                            class="fa-solid text-xs"
+                            :class="storage.getCategoryIcon(budget.category)"
+                          ></i>
+                        </div>
+                        <h4
+                          class="text-base font-bold tracking-tight text-[#1D1E20] transition-colors group-hover:text-indigo-600"
+                          x-text="budget.category"
+                        >
+                        </h4>
+                      </div>
                       <p
                         class="mt-0.5 flex items-center gap-1.5 text-[9px] font-black tracking-widest uppercase opacity-50"
                       >
