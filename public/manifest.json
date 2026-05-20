@@ -1,0 +1,21 @@
+{
+  "short_name": "FinTrack",
+  "name": "Personal Financial Tracker",
+  "icons": [
+    {
+      "src": "/duitku-192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/duitku-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#F8FAFC",
+  "theme_color": "#4F46E5",
+  "display": "standalone",
+  "orientation": "portrait"
+}
