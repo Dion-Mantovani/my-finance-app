@@ -10,43 +10,843 @@ import SmartInsight from '../components/stats/SmartInsight.astro'
   <div class="mx-auto pb-32" x-data="statsPage()">
     <StatsHeader />
 
+    <!-- 📍 NEW : Dropdown Timeframe dan Navigasi Periode -->
+    <div x-data="{ isDropdownOpen: false }" class="mb-5 flex gap-3">
+      <div
+        class="flex h-14 flex-1 items-center justify-between rounded-4xl border border-slate-100 bg-white p-2 shadow-sm"
+      >
+        <button
+          @click="prevPeriod()"
+          class="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-50 text-slate-600 transition-all hover:bg-indigo-50 hover:text-indigo-600 active:scale-95"
+        >
+          <i class="fa-solid fa-chevron-left text-xs"></i>
+        </button>
+
+        <div class="px-1 text-center select-none">
+          <span
+            x-text="getPeriodLabel()"
+            class="font-jakarta block text-xs font-black tracking-wide text-slate-800"
+          >
+            Mei 2026
+          </span>
+          <span
+            x-show="anchorDate.getMonth() === new Date().getMonth() && anchorDate.getFullYear() === new Date().getFullYear()"
+            class="mt-0.5 block text-[9px] font-bold tracking-wider text-emerald-500 uppercase"
+            x-cloak
+          >
+            Current
+          </span>
+          <span
+            x-show="anchorDate.getMonth() !== new Date().getMonth() || anchorDate.getFullYear() !== new Date().getFullYear()"
+            class="mt-0.5 block text-[9px] font-bold tracking-wider text-amber-500 uppercase"
+            x-cloak
+          >
+            Archive
+          </span>
+        </div>
+
+        <button
+          @click="nextPeriod()"
+          class="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-50 text-slate-600 transition-all hover:bg-indigo-50 hover:text-indigo-600 active:scale-95"
+          :class=`timeFrame === 'Yearly'
+            ? (anchorDate.getFullYear() >= new Date().getFullYear() ? 'opacity-30 cursor-not-allowed' : '')
+            : (anchorDate.getFullYear() >= new Date().getFullYear() && anchorDate.getMonth() >= new Date().getMonth() ? 'opacity-30 cursor-not-allowed' : '')`
+        >
+          <i class="fa-solid fa-chevron-right text-xs"></i>
+        </button>
+      </div>
+
+      <div class="relative w-40 shrink-0" @click.away="isDropdownOpen = false">
+        <button
+          @click="isDropdownOpen = !isDropdownOpen"
+          class="flex h-14 w-full items-center justify-between rounded-4xl border border-slate-100 bg-white px-4 text-sm font-bold tracking-wide text-slate-800 shadow-sm transition-all hover:border-slate-200 active:scale-98"
+        >
+          <div class="flex items-center gap-2">
+            <i class="fa-solid fa-calendar-calendar text-xs text-indigo-500"
+            ></i>
+            <span x-text="timeFrame">Monthly</span>
+          </div>
+          <i
+            class="fa-solid fa-chevron-down text-[10px] text-slate-400 transition-transform duration-200"
+            :class="isDropdownOpen ? 'rotate-180' : ''"></i>
+        </button>
+
+        <div
+          x-show="isDropdownOpen"
+          x-transition:enter="transition ease-out duration-100"
+          x-transition:enter-start="opacity-0 scale-95 -translate-y-2"
+          x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+          x-transition:leave="transition ease-in duration-75"
+          x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+          x-transition:leave-end="opacity-0 scale-95 -translate-y-2"
+          class="absolute right-0 left-0 z-50 mt-2 rounded-2xl border border-slate-100 bg-white p-1.5 shadow-xl"
+          x-cloak
+        >
+          <template x-for="item in ['Weekly', 'Monthly', 'Yearly']">
+            <button
+              :disabled="item === 'Weekly' && (chartMode === 'stacked' || chartMode === 'radar')"
+              @click="timeFrame = item; isDropdownOpen = false"
+              class="flex w-full items-center justify-center rounded-xl px-3 py-2.5 text-left text-xs font-bold transition-all"
+              :class=`{
+          'bg-indigo-50 text-indigo-600': timeFrame === item,
+          'text-slate-500 hover:bg-slate-50 hover:text-slate-800': timeFrame !== item && !(item === 'Weekly' && (chartMode === 'stacked' || chartMode === 'radar')),
+          'opacity-30 text-slate-300 cursor-not-allowed hover:bg-transparent': item === 'Weekly' && (chartMode === 'stacked' || chartMode === 'radar')
+        }`
+            >
+              <span x-text="item"></span>
+            </button>
+          </template>
+        </div>
+      </div>
+    </div>
+
+    <!-- 📍 NEW : Grafik dengan 4 mode (area, radar, dan stacked bar) -->
+
     <section class="mb-5">
       <div
-        class="relative rounded-4xl bg-[#1D1E20] px-6 pt-6 shadow-2xl shadow-slate-300/50"
+        class="relative rounded-4xl bg-[#1D1E20] px-4 pt-6 pb-5 shadow-sm shadow-slate-300/50"
       >
-        <div class="mb-3 flex items-center justify-between px-2">
-          <h3
-            class="font-jakarta text-xs font-bold tracking-widest text-white uppercase opacity-80"
+        <div class="mb-2 flex items-center justify-between px-2">
+          <div class="flex flex-col items-start gap-2">
+            <h3
+              x-text="chartMode === 'line' ? 'Cash Flow Projection' :
+                  chartMode === 'radar' ? 'Budget Balance Wheel' : 'Lifestyle Creep Tracker'"
+              class="font-jakarta text-xs font-bold tracking-widest text-white uppercase opacity-80"
+            >
+              Cash Flow Projection
+            </h3>
+
+            <div>
+              <div
+                x-show="chartMode === 'line'"
+                class="flex gap-3"
+                x-transition
+              >
+                <div class="flex items-center gap-1.5">
+                  <div class="h-2 w-2 rounded-full bg-emerald-400"></div>
+                  <span
+                    class="text-[9px] font-bold tracking-wider text-slate-400 uppercase"
+                    >In</span
+                  >
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <div class="h-2 w-2 rounded-full bg-rose-400"></div>
+                  <span
+                    class="text-[9px] font-bold tracking-wider text-slate-400 uppercase"
+                    >Out</span
+                  >
+                </div>
+              </div>
+
+              <div
+                x-show="chartMode !== 'line'"
+                class="flex items-center gap-2"
+                x-transition
+                x-cloak
+              >
+                <div class="h-2 w-2 shrink-0 rounded-full bg-slate-400"></div>
+
+                <span
+                  class="flex items-center gap-1 text-[9px] font-bold tracking-wider text-slate-400 uppercase"
+                >
+                  Tap grafik untuk lihat detail alokasi
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div
+          class="relative grid min-h-62.5 w-full grid-cols-1 grid-rows-1 items-center justify-center"
+        >
+          <div
+            id="holder-canvas-line"
+            class="col-start-1 row-start-1 w-full transition-all duration-300 ease-in-out"
+            :class="chartMode === 'line' ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-95 pointer-events-none'"
           >
-            Cash Flow Projection
-          </h3>
-          <div class="flex gap-4">
-            <div class="flex items-center gap-1.5">
-              <div class="h-2 w-2 rounded-full bg-emerald-400"></div>
-              <span class="text-[9px] font-bold text-slate-400 uppercase"
-                >In</span
+          </div>
+
+          <div
+            id="holder-canvas-radar"
+            class="col-span-8 col-start-1 row-start-1 flex w-full justify-center transition-all duration-300 ease-in-out"
+            :class="chartMode === 'radar' ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-95 pointer-events-none'"
+          >
+          </div>
+
+          <div
+            id="holder-canvas-stacked"
+            class="col-start-1 row-start-1 w-full transition-all duration-300 ease-in-out"
+            :class="chartMode === 'stacked' ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-95 pointer-events-none'"
+          >
+          </div>
+        </div>
+
+        <div class="px-1">
+          <div class="grid grid-cols-3 gap-1.5 rounded-2xl bg-white/5 p-1">
+            <button
+              @click="chartMode = 'line'"
+              type="button"
+              class="flex items-center justify-center rounded-xl py-3 transition-all duration-200 active:scale-90"
+              :class="chartMode === 'line' ? 'bg-white text-[#1D1E20] shadow-md scale-105' : 'text-slate-400 hover:text-white'"
+              title="Tren Cashflow"
+            >
+              <i class="fa-solid fa-chart-area text-base"></i>
+            </button>
+
+            <button
+              @click="chartMode = 'radar'"
+              type="button"
+              :disabled="timeFrame === 'Weekly'"
+              class="flex items-center justify-center rounded-xl py-3 transition-all duration-200"
+              :class=`[
+            timeFrame === 'Weekly' ? 'opacity-20 cursor-not-allowed text-slate-600' : '',
+            chartMode === 'radar' ? 'bg-white text-[#1D1E20] shadow-md scale-105 active:scale-90' : 'text-slate-400 hover:text-white active:scale-90'
+          ]`
+              title="Keseimbangan Anggaran"
+            >
+              <i class="fa-solid fa-circle-nodes text-base"></i>
+            </button>
+
+            <button
+              @click="chartMode = 'stacked'"
+              type="button"
+              :disabled="timeFrame === 'Weekly'"
+              class="flex items-center justify-center rounded-xl py-3 transition-all duration-200"
+              :class=`[
+            timeFrame === 'Weekly' ? 'opacity-20 cursor-not-allowed text-slate-600' : '',
+            chartMode === 'stacked' ? 'bg-white text-[#1D1E20] shadow-md scale-105 active:scale-90' : 'text-slate-400 hover:text-white active:scale-90'
+          ]`
+              title="Konsistensi Porsi Bulanan"
+            >
+              <i class="fa-solid fa-chart-simple text-base"></i>
+            </button>
+          </div>
+        </div>
+
+        <div
+          x-init="$watch('timeFrame', value => { if(value === 'Weekly') chartMode = 'line' })"
+        >
+        </div>
+      </div>
+    </section>
+
+    <!-- 📍 NEW : Card Cashflow -->
+    <section class="mb-5">
+      <div
+        class="overflow-hidden rounded-4xl border border-slate-100 bg-white shadow-sm"
+      >
+        <div class="flex divide-x divide-slate-100 border-b border-slate-100">
+          <div class="flex-1 p-5">
+            <div class="mb-2 flex items-center gap-1.5">
+              <div
+                class="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-50 text-emerald-500"
+              >
+                <i class="fa-solid fa-arrow-down-long text-[10px]"></i>
+              </div>
+              <p
+                class="text-[10px] font-black tracking-[0.2em] text-emerald-500 uppercase"
+              >
+                Income
+              </p>
+            </div>
+            <div class="flex items-baseline gap-1">
+              <span class="text-xs font-bold text-slate-400">Rp</span>
+              <h4
+                x-show="$store.app.showAmount"
+                class="font-jakarta text-lg font-black tracking-tight text-slate-800"
+                x-text="Number(summary.totalIncome).toLocaleString('id-ID')"
+              >
+                0
+              </h4>
+              <span
+                class="font-jakarta text-lg font-black tracking-widest text-slate-300"
+                x-show="!$store.app.showAmount"
+                x-cloak>••••••</span
               >
             </div>
-            <div class="flex items-center gap-1.5">
-              <div class="h-2 w-2 rounded-full bg-rose-400"></div>
-              <span class="text-[9px] font-bold text-slate-400 uppercase"
-                >Out</span
+          </div>
+
+          <div class="flex-1 p-5">
+            <div class="mb-2 flex items-center gap-1.5">
+              <div
+                class="flex h-5 w-5 items-center justify-center rounded-full bg-rose-50 text-rose-500"
+              >
+                <i class="fa-solid fa-arrow-up-long text-[10px]"></i>
+              </div>
+              <p
+                class="text-[10px] font-black tracking-[0.2em] text-rose-500 uppercase"
+              >
+                Expense
+              </p>
+            </div>
+            <div class="flex items-baseline gap-1">
+              <span class="text-xs font-bold text-slate-400">Rp</span>
+              <h4
+                x-show="$store.app.showAmount"
+                class="font-jakarta text-lg font-black tracking-tight text-slate-800"
+                x-text="Number(summary.totalExpense).toLocaleString('id-ID')"
+              >
+                0
+              </h4>
+              <span
+                class="font-jakarta text-lg font-black tracking-widest text-slate-300"
+                x-show="!$store.app.showAmount"
+                x-cloak>••••••</span
               >
             </div>
           </div>
         </div>
 
-        <div class="min-h-62.5 w-full" x-ref="chartCanvas"></div>
+        <div
+          class="gap-2 border-b border-slate-100 bg-slate-50/30 px-6 py-4.5 select-none"
+        >
+          <div class="mb-2 flex items-center justify-between">
+            <p
+              class="text-[10px] font-black tracking-[0.2em] text-slate-400 uppercase"
+            >
+              Net Cashflow
+            </p>
+
+            <div class="flex items-baseline gap-0.5">
+              <span class="text-xs font-bold text-slate-400">Rp</span>
+              <h4
+                x-show="$store.app.showAmount"
+                class="font-jakarta text-lg font-black tracking-tight transition-colors duration-300"
+                :class="(summary.totalIncome - summary.totalExpense) >= 0 ? 'text-emerald-500' : 'text-rose-500'"
+                x-text="Number(summary.totalIncome - summary.totalExpense).toLocaleString('id-ID')"
+              >
+                0
+              </h4>
+              <span
+                class="font-jakarta text-lg font-black tracking-widest text-slate-300"
+                x-show="!$store.app.showAmount"
+                x-cloak>••••••</span
+              >
+            </div>
+          </div>
+
+          <div
+            class="rounded-2xl border p-2 text-[12px] transition-all duration-300 select-none"
+            :class="getSummaryMessage().bgClass"
+            x-cloak
+          >
+            <span>
+              <i class="mr-1.5" :class="getSummaryMessage().icon"></i>
+              <span x-text="getSummaryMessage().text"></span>
+            </span>
+          </div>
+        </div>
+
+        <div class="bg-slate-50/50 p-6">
+          <div class="mb-3 flex items-end justify-between">
+            <div>
+              <p
+                class="mb-1 text-[10px] font-black tracking-[0.2em] text-slate-400 uppercase"
+              >
+                Saving Rate
+              </p>
+              <h5 class="text-sm font-bold text-indigo-600">
+                Efficiency: <span x-text="summary.savingsRate + '%'"></span>
+              </h5>
+            </div>
+            <span
+              class="rounded-full px-3 py-1 text-[9px] font-black tracking-wider uppercase transition-colors duration-300"
+              :class="summary.savingsRate >= 30 ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'"
+              x-text="summary.savingsRate >= 30 ? 'Healthy' : 'Caution'"></span>
+          </div>
+
+          <div
+            class="relative h-3 w-full overflow-hidden rounded-full bg-slate-200 shadow-inner"
+          >
+            <div
+              class="relative h-full rounded-full bg-linear-to-r from-indigo-500 to-indigo-400 transition-all duration-1000 ease-out"
+              :style="`width: ${Math.min(summary.savingsRate, 100)}%`"
+            >
+              <div class="absolute inset-0 animate-pulse bg-white/20"></div>
+            </div>
+          </div>
+
+          <p class="mt-3 text-[9px] font-medium text-slate-400 italic">
+            *Target ideal saving rate adalah di atas 20%
+          </p>
+        </div>
       </div>
     </section>
 
-    <SpendingSummary />
+    <!-- 📍 NEW : Metriks PRO -->
+    <section
+      class="mb-5"
+      x-data="{
+        showMore: false,
+        showInfo: false,
+        metrics: [
+          { id: 1, label: 'Burn Rate Harian', group: 'core', icon: 'fa-solid fa-fire-flame-curved text-amber-500', desc: 'Rata-rata kecepatan jumlah uang yang lo habisin per hari dari awal bulan sampai hari ini.' },
+          { id: 2, label: 'Sisa Kuota Harian', group: 'core', icon: 'fa-solid fa-shield-halved text-emerald-500', desc: 'Batas maksimal uang yang boleh lo jajanin tiap hari biar dompet gak boncos di akhir bulan.' },
+          { id: 3, label: 'Proyeksi Akhir Bulan', group: 'core', icon: 'fa-solid fa-wand-magic-sparkles text-indigo-500', desc: 'Ramalan total pengeluaran lo di akhir bulan kalau gaya hidup lo stabil kayak sekarang.' },
+          { id: 4, label: 'Fixed Cost Ratio', value: '55%', group: 'core', icon: 'fa-solid fa-thumbtack text-red-400', desc: 'Persentase pos pengeluaran wajib yang mati (kos, tagihan) yang gak bisa diganggu gugat.' },
+          { id: 5, label: 'Variable Cost Ratio', value: '45%', group: 'more', icon: 'fa-solid fa-ice-cream text-pink-500', desc: 'Persentase pengeluaran fleksibel atau impulsif (jajan, ngopi, nonton).' },
+          { id: 6, label: 'Expense-to-Income', group: 'more', icon: 'fa-solid fa-chart-pie text-rose-500', desc: 'Berapa persen total gaji atau pemasukan lo yang bener-bener habis menguap jadi beban.' },
+          { id: 7, label: 'Budget-to-Income', group: 'more', icon: 'fa-solid fa-clipboard-list text-cyan-500', desc: 'Mengukur seberapa realistis lo bikin rencana limit anggaran dibanding total pemasukan.' },
+          { id: 8, label: 'Hari Terboros', group: 'more', icon: 'fa-solid fa-bolt text-yellow-500', desc: 'Hari dan tanggal di mana lo mengeluarkan uang paling brutal atau khilaf dalam 1x24 jam.' },
+          { id: 9, label: 'Transaksi Tertinggi', group: 'more', icon: 'fa-solid fa-gem text-blue-500', desc: 'Nominal satu baris transaksi paling mahal yang lo catat di bulan berjalan.' },
+          { id: 10, label: 'Kategori Terfrequent', group: 'more', icon: 'fa-solid fa-retweet text-violet-500', desc: 'Kategori yang paling sering lo klik atau catat (mengungkap kebiasaan impulsif kecil lo).' },
+          { id: 11, label: 'Skor Finansial', group: 'more', icon: 'fa-solid fa-bullseye text-teal-500', desc: 'Mengukur kesehatan finansial lo berdasarkan rasio tabungan ideal (Target minimal 30% dari pemasukan).' },
+          { id: 12, label: 'Days of Runway', group: 'more', icon: 'fa-solid fa-hourglass-half text-orange-500', desc: 'Sisa napas keuangan lo. Berapa hari uang lo bakal bertahan kalau mendadak gak ada pemasukan.' },
+          { id: 13, label: 'Kepatuhan Anggaran', group: 'more', icon: 'fa-solid fa-bullseye text-indigo-600', desc: 'Nilai rapor kepatuhan real lo terhadap limit anggaran kategori yang lo buat di halaman Budget.' }
+        ]
+      }"
+    >
+      <div
+        class="overflow-hidden rounded-4xl border border-slate-100 bg-white p-6 shadow-sm"
+      >
+        <div class="mb-3 flex items-center justify-between select-none">
+          <div class="flex items-center gap-2">
+            <div
+              class="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-50 p-2"
+            >
+              <i class="fa-solid fa-chart-simple text-sm text-indigo-500"></i>
+            </div>
+            <h3
+              class="font-jakarta text-sm font-black tracking-wider text-slate-800 uppercase"
+            >
+              Metrics Pro
+            </h3>
+          </div>
 
+          <div class="flex gap-1.5">
+            <button
+              @click="showInfo = !showInfo"
+              type="button"
+              class="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 transition-all active:scale-90"
+              :class="showInfo ? 'text-indigo-600 bg-indigo-50 font-bold' : 'text-slate-400 hover:text-indigo-600'"
+            >
+              <i
+                class="fa-solid text-xs"
+                :class="showInfo ? 'fa-xmark scale-110' : 'fa-circle-info'"></i>
+            </button>
+
+            <button
+              x-show="!showInfo"
+              @click="showMore = !showMore"
+              type="button"
+              class="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 transition-all active:scale-90"
+              :class="showInfo ? 'text-indigo-600 bg-indigo-50 font-bold' : 'text-slate-400 hover:text-indigo-600'"
+            >
+              <i
+                class="fa-solid text-xs"
+                :class="showMore ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="relative">
+          <div
+            x-show="!showInfo"
+            x-transition:enter="transition ease-out duration-200"
+          >
+            <div class="mb-4 divide-y divide-slate-50 border-b border-slate-50">
+              <template
+                x-for="item in metrics.filter(m => m.group === 'core')"
+                :key="item.id"
+              >
+                <div
+                  class="flex cursor-pointer items-center justify-between rounded-xl border-b border-indigo-50/80 px-1 py-3.5 transition-colors active:bg-slate-50/50"
+                >
+                  <div class="flex max-w-[60%] items-center gap-2">
+                    <div class="flex w-4 shrink-0 justify-center">
+                      <i :class="item.icon" class="text-[11px]"></i>
+                    </div>
+                    <span
+                      class="truncate text-xs font-bold text-slate-500"
+                      x-text="item.label"></span>
+                  </div>
+                  <span
+                    class="font-jakarta shrink-0 text-right text-xs font-black tracking-tight whitespace-pre-line text-slate-800"
+                    x-text="calculateMetricValue(item.id)"></span>
+                </div>
+              </template>
+
+              <template
+                x-for="item in metrics.filter(m => m.group === 'more')"
+                :key="item.id"
+              >
+                <div
+                  x-show="showMore"
+                  x-transition:enter="transition ease-out duration-200"
+                  class="flex cursor-pointer items-center justify-between rounded-xl border-b border-indigo-50/80 px-1 py-3.5 transition-colors active:bg-slate-50/50"
+                >
+                  <div class="flex max-w-[60%] items-center gap-2">
+                    <div class="flex w-4 shrink-0 justify-center">
+                      <i :class="item.icon" class="text-[11px]"></i>
+                    </div>
+                    <span
+                      class="truncate text-xs font-bold text-slate-500"
+                      x-text="item.label"></span>
+                  </div>
+                  <span
+                    class="font-jakarta shrink-0 text-right text-xs font-black tracking-tight whitespace-pre-line text-slate-800"
+                    x-text="calculateMetricValue(item.id)"></span>
+                </div>
+              </template>
+            </div>
+
+            <div class="text-center select-none">
+              <button
+                @click="showMore = !showMore"
+                type="button"
+                class="font-jakarta mb-2 inline-flex items-center gap-1.5 rounded-full bg-indigo-50/40 px-4 py-1 text-xs font-black tracking-wide text-indigo-600 transition-colors hover:text-indigo-700"
+              >
+                <span
+                  x-text="showMore ? 'Sembunyikan Indikator' : 'Tampilkan Semua Indikator (8)'"
+                ></span>
+                <i
+                  class="fa-solid text-[10px] transition-transform duration-300"
+                  :class="showMore ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+              </button>
+            </div>
+          </div>
+
+          <div
+            x-show="showInfo"
+            x-cloak
+            x-transition:enter="transition ease-out duration-200"
+            class="no-scrollbar max-h-80 divide-y divide-slate-100 overflow-y-auto pr-1"
+          >
+            <div class="mb-3 rounded-2xl bg-indigo-100/40 p-3.5 select-none">
+              <p
+                class="text-[11px] leading-relaxed font-medium text-indigo-700"
+              >
+                <i class="fa-book fa-solid mr-1.5 text-[11px] text-indigo-800"
+                ></i>
+                <strong>Kamus Asisten Finansial:</strong> Menampilkan penjelasan lengkap
+                dari indikator Metrics Pro. Klik ikon silang (X) di kanan atas untuk
+                kembali ke statistik!
+              </p>
+            </div>
+
+            <template x-for="item in metrics" :key="'info-'+item.id">
+              <div class="py-3 select-none first:pt-1 last:pb-1">
+                <div class="mb-1 flex items-center gap-1.5">
+                  <i :class="item.icon" class="text-[11px]"></i>
+                  <h5
+                    class="font-jakarta text-xs font-black text-slate-700"
+                    x-text="item.label"
+                  >
+                  </h5>
+                </div>
+                <p
+                  class="pl-5 text-[11px] leading-relaxed font-medium text-slate-400"
+                  x-text="item.desc"
+                >
+                </p>
+              </div>
+            </template>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 📍 NEW : Smart Insight -->
     <div x-show="summary.totalIncome > 0 || summary.totalExpense > 0" x-cloak>
-      <SmartInsight />
+      <section
+        class="group relative mb-5 rounded-4xl border border-indigo-500/70 bg-indigo-200 p-6 shadow-xs"
+      >
+        <div class="absolute top-0 right-4 z-20 -translate-y-1/2 select-none">
+          <span
+            class="rounded-full bg-linear-to-br from-indigo-300 to-indigo-800 px-3 py-1 text-[9px] font-black tracking-wider text-white uppercase shadow-md shadow-amber-600/10"
+          >
+            SMART ANALYSIS
+            <i class="fa-solid fa-lightbulb ml-1 text-amber-300"></i>
+          </span>
+        </div>
+
+        <div class="relative z-10 flex flex-col gap-3">
+          <div>
+            <div class="flex items-center gap-1.5">
+              <div
+                class="mt-0.5 flex h-5 w-5 shrink-0 animate-pulse items-center justify-center text-indigo-800"
+              >
+                <i class="fa-solid fa-brain text-base"></i>
+              </div>
+
+              <h3
+                class="font-jakarta text-base leading-tight font-black tracking-wider text-indigo-800 uppercase"
+                x-text="insight.status || 'SMART FINANCIAL DIAGNOSIS'"
+              >
+                SMART FINANCIAL DIAGNOSIS
+              </h3>
+            </div>
+
+            <p
+              class="mt-1 text-xs leading-relaxed font-semibold text-slate-900"
+              x-text="insight.message"
+            >
+              Menganalisis data transaksi lo periode ini...
+            </p>
+          </div>
+
+          <!-- <div class="my-1 h-px w-full bg-amber-100/70"></div>
+
+        <div class="flex items-center justify-between gap-4 select-none">
+          <p
+            class="max-w-[70%] text-[10px] leading-normal font-medium text-slate-400"
+          >
+            Gunakan asisten kecerdasan buatan untuk memeriksa kesehatan keuangan
+            periode ini secara mendalam.
+          </p>
+
+          <button
+            type="button"
+            @click="$dispatch('trigger-ai-modal')"
+            class="flex h-9 shrink-0 items-center justify-center rounded-xl bg-[#1D1E20] px-4 text-[11px] font-black tracking-wide text-white shadow-sm transition-all hover:bg-slate-800 active:scale-95"
+          >
+            Analisis AI
+          </button>
+        </div> -->
+        </div>
+      </section>
     </div>
 
-    <CategoryList />
+    <!-- 📍 NEW : Top Spending with information -->
+    <section class="mb-10" x-data="{ showAll: false }">
+      <div class="mb-3 flex items-end justify-between px-1 select-none">
+        <div>
+          <h3
+            class="font-jakarta text-lg font-black tracking-wide text-[#1D1E20] capitalize"
+          >
+            Spending by Category
+          </h3>
+          <p class="mt-1 text-xs font-medium text-slate-400">
+            Rincian pengeluaran tertinggi ke terendah
+          </p>
+        </div>
+
+        <span
+          class="rounded-full border border-slate-100 bg-slate-50 px-2.5 py-1 text-[10px] font-black tracking-wide text-slate-500"
+          x-text="topCategories.length + ' Kategori'"
+        >
+          0 Kategori
+        </span>
+      </div>
+
+      <div class="divide-y divide-slate-50 border-b border-slate-50">
+        <template
+          x-for="(cat, index) in topCategories.slice(0, 3)"
+          :key="'base-'+cat.name"
+        >
+          <div class="group px-1 py-3 transition-colors duration-200">
+            <div class="mb-3.5 flex items-center justify-between gap-4">
+              <div class="flex max-w-[75%] items-center gap-4">
+                <div
+                  class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-white shadow-sm transition-transform group-hover:scale-105"
+                  :class="cat.color"
+                >
+                  <i class="fa-solid text-base" :class="cat.icon"></i>
+                </div>
+
+                <div class="truncate select-none">
+                  <h4
+                    class="text-sm font-black tracking-tight text-[#1D1E20]"
+                    x-text="cat.name"
+                  >
+                    Nama Kategori
+                  </h4>
+
+                  <div
+                    class="mt-1 flex items-center gap-1.5 truncate text-[10px] font-medium tracking-wide text-slate-400"
+                  >
+                    <span
+                      class="font-bold text-indigo-600/90"
+                      x-text="Math.round(cat.percentage) + '% total'"></span>
+                    <span class="text-slate-200">|</span>
+                    <span x-text="(cat.transactionCount || '0') + 'x Act'"
+                    ></span>
+                    <span class="text-slate-200">|</span>
+                    <span
+                      x-text="'Avg: Rp ' + Number(cat.averageAmount || (cat.amount / (cat.transactionCount || 1))).toLocaleString('id-ID')"
+                    ></span>
+                  </div>
+                </div>
+              </div>
+
+              <div
+                class="flex shrink-0 flex-col items-end justify-center text-right"
+              >
+                <p
+                  x-show="$store.app.showAmount"
+                  class="text-sm font-black tracking-tight text-[#1D1E20]"
+                  x-text="'Rp ' + Number(cat.amount).toLocaleString('id-ID')"
+                >
+                  Rp 0
+                </p>
+                <span
+                  class="font-jakarta text-sm font-black tracking-widest text-slate-300"
+                  x-show="!$store.app.showAmount"
+                  x-cloak>••••••</span
+                >
+
+                <div
+                  class="mt-0.5 flex items-center justify-end gap-1 select-none"
+                >
+                  <i
+                    class="fa-solid text-[10px]"
+                    x-show="cat.trendText !== 'Baru periode ini'"
+                    :class="cat.trend === 'up' ? 'fa-arrow-trend-up text-rose-500' : 'fa-arrow-trend-down text-emerald-500'"
+                  ></i>
+                  <span
+                    class="text-[10px] font-bold tracking-tight capitalize"
+                    :class=`{
+                  'text-rose-500': cat.trend === 'up' && cat.trendText !== 'Baru periode ini',
+                  'text-emerald-500': cat.trend === 'down' && cat.trendText !== 'Baru periode ini',
+                  'text-slate-400': cat.trendText === 'Baru periode ini'
+                }`
+                    x-text="cat.trendText"
+                  >
+                    Normal
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div
+              class="h-1.5 w-full overflow-hidden rounded-full bg-slate-100 select-none"
+            >
+              <div
+                class="h-full rounded-full shadow-xs transition-all duration-1000 ease-out"
+                :class="cat.color"
+                :style="`width: ${Math.min(cat.percentage, 100)}%`"
+              >
+              </div>
+            </div>
+          </div>
+        </template>
+
+        <template
+          x-for="(cat, index) in topCategories.slice(3)"
+          :key="'ext-'+cat.name"
+        >
+          <div
+            class="group px-1 py-5 transition-colors duration-200"
+            x-show="showAll"
+            x-transition:enter="transition ease-out duration-200"
+            x-transition:enter-start="opacity-0 transform -translate-y-1"
+            x-transition:enter-end="opacity-100 transform translate-y-0"
+          >
+            <div class="mb-3.5 flex items-center justify-between gap-4">
+              <div class="flex max-w-[75%] items-center gap-4">
+                <div
+                  class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-white shadow-sm transition-transform group-hover:scale-105"
+                  :class="cat.color"
+                >
+                  <i class="fa-solid text-base" :class="cat.icon"></i>
+                </div>
+
+                <div class="truncate select-none">
+                  <h4
+                    class="text-sm font-black tracking-tight text-[#1D1E20]"
+                    x-text="cat.name"
+                  >
+                    Nama Kategori
+                  </h4>
+                  <div
+                    class="mt-1 flex items-center gap-1.5 truncate text-[10px] font-medium tracking-wide text-slate-400"
+                  >
+                    <span
+                      class="font-bold text-indigo-600/90"
+                      x-text="Math.round(cat.percentage) + '% total'"></span>
+                    <span class="text-slate-200">|</span>
+                    <span x-text="(cat.transactionCount || '0') + 'x Act'"
+                    ></span>
+                    <span class="text-slate-200">|</span>
+                    <span
+                      x-text="'Avg: Rp ' + Number(cat.averageAmount || (cat.amount / (cat.transactionCount || 1))).toLocaleString('id-ID')"
+                    ></span>
+                  </div>
+                </div>
+              </div>
+
+              <div
+                class="flex shrink-0 flex-col items-end justify-center text-right"
+              >
+                <p
+                  x-show="$store.app.showAmount"
+                  class="text-sm font-black tracking-tight text-[#1D1E20]"
+                  x-text="'Rp ' + Number(cat.amount).toLocaleString('id-ID')"
+                >
+                  Rp 0
+                </p>
+                <span
+                  class="font-jakarta text-sm font-black tracking-widest text-slate-300"
+                  x-show="!$store.app.showAmount"
+                  x-cloak>••••••</span
+                >
+
+                <div
+                  class="mt-0.5 flex items-center justify-end gap-1 select-none"
+                >
+                  <i
+                    class="fa-solid text-[10px]"
+                    x-show="cat.trendText !== 'Baru periode ini'"
+                    :class="cat.trend === 'up' ? 'fa-arrow-trend-up text-rose-500' : 'fa-arrow-trend-down text-emerald-500'"
+                  ></i>
+                  <span
+                    class="text-[10px] font-bold tracking-tight capitalize"
+                    :class=`{
+                'text-rose-500': cat.trend === 'up' && cat.trendText !== 'Baru periode ini',
+                'text-emerald-500': cat.trend === 'down' && cat.trendText !== 'Baru periode ini',
+                'text-slate-400': cat.trendText === 'Baru periode ini'
+              }`
+                    x-text="cat.trendText">Normal</span
+                  >
+                </div>
+              </div>
+            </div>
+
+            <div
+              class="h-1.5 w-full overflow-hidden rounded-full bg-slate-100 select-none"
+            >
+              <div
+                class="h-full rounded-full shadow-xs transition-all duration-1000 ease-out"
+                :class="cat.color"
+                :style="`width: ${Math.min(cat.percentage, 100)}%`"
+              >
+              </div>
+            </div>
+          </div>
+        </template>
+
+        <div
+          x-show="topCategories.length === 0"
+          class="my-4 rounded-4xl border border-dashed border-slate-100 bg-slate-50/30 py-10 text-center"
+          x-cloak
+        >
+          <p
+            class="text-[10px] font-black tracking-widest text-slate-400 uppercase"
+          >
+            Belum ada data pengeluaran
+          </p>
+        </div>
+      </div>
+
+      <div
+        x-show="topCategories.length > 5"
+        class="mt-6 flex justify-center"
+        x-cloak
+      >
+        <button
+          @click="showAll = !showAll"
+          type="button"
+          class="font-jakarta inline-flex items-center gap-1.5 rounded-full bg-indigo-50/40 px-4 py-1 text-xs font-black tracking-wide text-indigo-600 transition-colors hover:text-indigo-700"
+        >
+          <span
+            x-text="showAll ? 'Sembunyikan Kategori' : 'Lihat Semua Kategori'"
+          ></span>
+          <i
+            class="fa-solid text-[10px] text-indigo-600 transition-transform duration-300"
+            :class="showAll ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+        </button>
+      </div>
+    </section>
   </div>
 </MainLayout>
 
