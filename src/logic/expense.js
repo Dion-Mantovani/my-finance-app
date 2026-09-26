@@ -1,4 +1,5 @@
 import { storage } from '../utils/storage.js'
+import { exportDataToJSON } from './exporter.js'
 
 export const expensePage = () => ({
   /* =========================================================================
@@ -54,6 +55,10 @@ export const expensePage = () => ({
     })
   },
 
+  exportData() {
+    exportDataToJSON()
+  },
+  
   refreshData() {
     const allRawData = storage.getTransactions() || []
     const query = this.searchQuery.toLowerCase()

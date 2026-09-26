@@ -69,6 +69,7 @@ import Filter from '../components/expense/Filter.astro'
 
           <div class="flex flex-none items-center gap-2">
             <button
+            @click="exportData()"
               class="flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-100 bg-white text-slate-400 shadow-sm transition-all active:scale-100"
             >
               <i class="fa-solid fa-file-export text-sm"></i>
