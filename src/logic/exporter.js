@@ -71,7 +71,7 @@ export const exportDataToJSON = () => {
     return {
       id: newId,
       name: formatAccountName(wallet.name),
-      initial_balance: 0,
+      initial_balance: Number(wallet.balance),
       icon: mapWalletIcon(wallet.icon),
       status: 'active',
       created_at: defaultIsoDate,
@@ -108,10 +108,15 @@ export const exportDataToJSON = () => {
   const transactions = oldTransactions.map((t) => {
     const newTxId = generateUUID()
     const accountId = accountMap.get(String(t.walletId)) || null
-    const toAccountId = t.walletIdDest ? accountMap.get(String(t.walletIdDest)) || null : null
-    const categoryId = t.type === 'transfer' ? null : (categoryMap.get(t.category) || null)
+    const toAccountId = t.walletIdDest
+      ? accountMap.get(String(t.walletIdDest)) || null
+      : null
+    const categoryId =
+      t.type === 'transfer' ? null : categoryMap.get(t.category) || null
 
-    const txCreatedAt = t.createdAt ? new Date(t.createdAt).toISOString() : defaultIsoDate
+    const txCreatedAt = t.createdAt
+      ? new Date(t.createdAt).toISOString()
+      : defaultIsoDate
 
     return {
       id: newTxId,
@@ -137,7 +142,6 @@ export const exportDataToJSON = () => {
     transactions,
   }
 
-
   const jsonString = JSON.stringify(finalExportData, null, 2)
   const blob = new Blob([jsonString], { type: 'application/json' })
   const url = URL.createObjectURL(blob)
@@ -149,5 +153,4 @@ export const exportDataToJSON = () => {
   a.click()
   document.body.removeChild(a)
   URL.revokeObjectURL(url)
-  
 }
